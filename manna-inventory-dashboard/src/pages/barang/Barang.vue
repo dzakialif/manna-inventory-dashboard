@@ -5,94 +5,113 @@ export default {
             data: [
                 {
                     id: 1,
-                    kode: "BRG001",
-                    nama: "Laptop Dell XPS 13",
-                    kategori: "Elektronik",
+                    kode_barang: "BRG001",
+                    nama: "Moiaa Swiss Choco 1000grm",
+                    kategori: "Moiaa",
+                    ukuran: "1000",
                     harga: 15000000,
                     stok: 5,
-                    satuan: "Unit",
-                    supplier: "PT. Delta Electronic",
-                    tanggal_masuk: "2024-01-15"
+                    satuan: "PCS",
+                    rasa: "Coklat",
+                    terakhir_update: "2024-01-15"
                 },
                 {
                     id: 2,
-                    kode: "BRG002",
-                    nama: "Mouse Logitech MX Master 3",
-                    kategori: "Aksesori",
+                    kode_barang: "BRG002",
+                    nama: "Moiaa Mango 1000grm",
+                    kategori: "Moiaa",
+                    ukuran: "1000",
                     harga: 800000,
                     stok: 20,
-                    satuan: "Unit",
-                    supplier: "PT. Jaya Digital",
-                    tanggal_masuk: "2024-01-10"
+                    satuan: "PCS",
+                    rasa: "Mangga",
+                    terakhir_update: "2024-01-10"
                 },
                 {
                     id: 3,
-                    kode: "BRG003",
-                    nama: "Keyboard Mechanical RGB",
-                    kategori: "Aksesori",
+                    kode_barang: "BRG003",
+                    nama: "SBC Cappucino Original 1000grm",
+                    kategori: "SBC",
+                    ukuran: "1000",
                     harga: 1200000,
                     stok: 15,
-                    satuan: "Unit",
-                    supplier: "PT. Tech Store",
-                    tanggal_masuk: "2024-01-20"
+                    satuan: "PCS",
+                    rasa: "Cappucino",
+                    terakhir_update: "2024-01-20"
                 },
                 {
                     id: 4,
-                    kode: "BRG004",
-                    nama: "Monitor LG 27 Inch",
-                    kategori: "Elektronik",
+                    kode_barang: "BRG004",
+                    nama: "Moiaa Strawberry 1000grm",
+                    kategori: "Moiaa",
+                    ukuran: "1000",
                     harga: 2500000,
                     stok: 8,
-                    satuan: "Unit",
-                    supplier: "PT. Vision Tech",
-                    tanggal_masuk: "2024-02-01"
+                    satuan: "PCS",
+                    rasa: "Strawberry",
+                    terakhir_update: "2024-02-01"
                 },
                 {
                     id: 5,
-                    kode: "BRG005",
-                    nama: "Headset Audio Profesional",
-                    kategori: "Aksesori",
+                    kode_barang: "BRG005",
+                    nama: "SBC Swiss Choco 1000grm",
+                    kategori: "SBC",
+                    ukuran: "1000",
                     harga: 1500000,
                     stok: 12,
-                    satuan: "Unit",
-                    supplier: "PT. Sound Pro",
-                    tanggal_masuk: "2024-02-05"
+                    satuan: "PCS",
+                    rasa: "Coklat",
+                    terakhir_update: "2024-02-05"
                 },
                 {
                     id: 6,
-                    kode: "BRG006",
-                    nama: "Webcam HD 1080P",
-                    kategori: "Aksesori",
+                    kode_barang: "BRG006",
+                    nama: "Moiaa Mango 200grm",
+                    kategori: "Moiaa",
+                    ukuran: "200",
                     harga: 750000,
                     stok: 25,
-                    satuan: "Unit",
-                    supplier: "PT. Media Plus",
-                    tanggal_masuk: "2024-02-10"
+                    satuan: "PCS",
+                    rasa: "Mangga",
+                    terakhir_update: "2024-02-10"
                 },
                 {
                     id: 7,
-                    kode: "BRG007",
-                    nama: "Docking Station USB-C",
-                    kategori: "Aksesori",
+                    kode_barang: "BRG007",
+                    nama: "SBC Green Tea 500grm",
+                    kategori: "SBC",
+                    ukuran: "500",
                     harga: 1800000,
                     stok: 10,
-                    satuan: "Unit",
-                    supplier: "PT. Connect World",
-                    tanggal_masuk: "2024-02-15"
+                    satuan: "PCS",
+                    rasa: "Green Tea",
+                    terakhir_update: "2024-02-15"
                 },
                 {
                     id: 8,
-                    kode: "BRG008",
-                    nama: "Printer Laser Multifungsi",
-                    kategori: "Perangkat",
+                    kode_barang: "BRG008",
+                    nama: "Topping Cheese Cream 500grm",
+                    kategori: "Topping",
+                    ukuran: "500",
                     harga: 4500000,
                     stok: 3,
-                    satuan: "Unit",
-                    supplier: "PT. Office Equipment",
-                    tanggal_masuk: "2024-02-20"
+                    satuan: "PCS",
+                    rasa: "Keju",
+                    terakhir_update: "2024-02-20"
                 }
             ],
             loading: false,
+            filters: {
+                kode_barang: { value: null, matchMode: "contains" },
+                nama: { value: null, matchMode: "contains" },
+                kategori: { value: null, matchMode: "contains" },
+                ukuran: { value: null, matchMode: "contains" },
+                harga: { value: null, matchMode: "contains" },
+                stok: { value: null, matchMode: "contains" },
+                satuan: { value: null, matchMode: "contains" },
+                rasa: { value: null, matchMode: "contains" },
+                terakhir_update: { value: null, matchMode: "contains" }
+            },
             columnPt: {
                 headerCell: {
                     class: "font-farro",
@@ -165,6 +184,8 @@ export default {
         <DataTable
             class="barang-datatable font-farro text-sm"
             :value="data"
+            v-model:filters="filters"
+            filterDisplay="row"
             :paginator="true"
             :rows="10"
             dataKey="id"
@@ -181,36 +202,194 @@ export default {
                 </template>
             </Column>
 
-            <Column :pt="columnPt" class="font-farro text-md" field="kode" header="Kode Barang" sortable style="min-width: 12rem">
-                <template #body="{ data }">{{ data.kode }}</template>
-            </Column>
-
-            <Column :pt="columnPt" class="font-farro text-md" field="nama" header="Nama Barang" sortable style="min-width: 20rem">
-                <template #body="{ data }">{{ data.nama }}</template>
-            </Column>
-
-            <Column :pt="columnPt" class="font-farro text-md" field="kategori" header="Kategori" sortable style="min-width: 12rem">
-                <template #body="{ data }">{{ data.kategori }}</template>
-            </Column>
-
-            <Column :pt="columnPt" class="font-farro text-md" field="harga" header="Harga" sortable style="min-width: 15rem">
-                <template #body="{ data }">{{ formatCurrency(data.harga) }}</template>
-            </Column>
-
-            <Column :pt="columnPt" class="font-farro text-md" field="stok" header="Stok" sortable style="min-width: 10rem">
-                <template #body="{ data }">
-                    <span :class="data.stok <= 5 ? 'text-red-500 font-semibold' : ''">
-                        {{ data.stok }} {{ data.satuan }}
-                    </span>
+            <Column
+                :pt="columnPt"
+                class="font-farro text-md"
+                field="kode_barang"
+                header="Kode Barang"
+                sortable
+                filter
+                :showFilterMenu="false"
+                filterPlaceholder="Cari kode barang..."
+                style="min-width: 12rem"
+            >
+                <template #body="{ data }">{{ data.kode_barang }}</template>
+                <template #filter="{ filterModel, filterCallback }">
+                    <input
+                        v-model="filterModel.value"
+                        type="text"
+                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Cari kode barang..."
+                        @input="filterCallback()"
+                    />
                 </template>
             </Column>
 
-            <Column :pt="columnPt" class="font-farro text-md" field="supplier" header="Supplier" sortable style="min-width: 18rem">
-                <template #body="{ data }">{{ data.supplier }}</template>
+            <Column
+                :pt="columnPt"
+                class="font-farro text-md"
+                field="kategori"
+                header="Kategori"
+                sortable
+                filter
+                :showFilterMenu="false"
+                filterPlaceholder="Cari kategori..."
+                style="min-width: 12rem"
+            >
+                <template #body="{ data }">{{ data.kategori }}</template>
+                <template #filter="{ filterModel, filterCallback }">
+                    <input
+                        v-model="filterModel.value"
+                        type="text"
+                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Cari kategori..."
+                        @input="filterCallback()"
+                    />
+                </template>
             </Column>
 
-            <Column :pt="columnPt" class="font-farro text-md" field="tanggal_masuk" header="Tanggal Masuk" sortable style="min-width: 12rem">
-                <template #body="{ data }">{{ data.tanggal_masuk }}</template>
+
+            <Column
+                :pt="columnPt"
+                class="font-farro text-md"
+                field="ukuran"
+                header="Ukuran"
+                sortable
+                filter
+                :showFilterMenu="false"
+                filterPlaceholder="Cari ukuran..."
+                style="min-width: 12rem"
+            >
+                <template #body="{ data }">{{ data.ukuran }}</template>
+                <template #filter="{ filterModel, filterCallback }">
+                    <input
+                        v-model="filterModel.value"
+                        type="text"
+                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Cari ukuran..."
+                        @input="filterCallback()"
+                    />
+                </template>
+            </Column>
+
+
+            <Column
+                :pt="columnPt"
+                class="font-farro text-md"
+                field="harga"
+                header="Harga"
+                sortable
+                filter
+                :showFilterMenu="false"
+                filterPlaceholder="Cari harga..."
+                style="min-width: 12rem"
+            >
+                <template #body="{ data }">{{ formatCurrency(data.harga) }}</template>
+                <template #filter="{ filterModel, filterCallback }">
+                    <input
+                        v-model="filterModel.value"
+                        type="text"
+                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Cari harga..."
+                        @input="filterCallback()"
+                    />
+                </template>
+            </Column>
+
+            <Column
+                :pt="columnPt"
+                class="font-farro text-md"
+                field="stok"
+                header="Stok"
+                sortable
+                filter
+                :showFilterMenu="false"
+                filterPlaceholder="Cari stok..."
+                style="min-width: 12rem"
+            >
+                <template #body="{ data }">
+                    <span :class="data.stok <= 5 ? 'text-red-500 font-semibold' : ''">
+                        {{ data.stok }} {{ data.satuan }}
+                    </span></template>
+                <template #filter="{ filterModel, filterCallback }">
+                    <input
+                        v-model="filterModel.value"
+                        type="text"
+                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Cari stok..."
+                        @input="filterCallback()"
+                    />
+                </template>
+            </Column>
+
+
+            <Column
+                :pt="columnPt"
+                class="font-farro text-md"
+                field="satuan"
+                header="Satuan"
+                sortable
+                filter
+                :showFilterMenu="false"
+                filterPlaceholder="Cari satuan..."
+                style="min-width: 12rem"
+            >
+                <template #body="{ data }">{{ data.satuan }}</template>
+                <template #filter="{ filterModel, filterCallback }">
+                    <input
+                        v-model="filterModel.value"
+                        type="text"
+                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Cari satuan..."
+                        @input="filterCallback()"
+                    />
+                </template>
+            </Column>
+
+            <Column
+                :pt="columnPt"
+                class="font-farro text-md"
+                field="rasa"
+                header="Rasa"
+                sortable
+                filter
+                :showFilterMenu="false"
+                filterPlaceholder="Cari rasa..."
+                style="min-width: 12rem"
+            >
+                <template #body="{ data }">{{ data.rasa }}</template>
+                <template #filter="{ filterModel, filterCallback }">
+                    <input
+                        v-model="filterModel.value"
+                        type="text"
+                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Cari rasa..."
+                        @input="filterCallback()"
+                    />
+                </template>
+            </Column>
+
+            <Column
+                :pt="columnPt"
+                class="font-farro text-md"
+                field="terakhir_update"
+                header="Terakhir Update"
+                sortable
+                filter
+                :showFilterMenu="false"
+                filterPlaceholder="Cari terakhir update..."
+                style="min-width: 12rem"
+            >
+                <template #body="{ data }">{{ data.terakhir_update}}</template>
+                <template #filter="{ filterModel, filterCallback }">
+                    <input
+                        v-model="filterModel.value"
+                        type="text"
+                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Cari terakhir update..."
+                        @input="filterCallback()"
+                    />
+                </template>
             </Column>
 
             <Column :pt="columnPt" class="font-farro text-md" header="Aksi" style="min-width: 10rem">
