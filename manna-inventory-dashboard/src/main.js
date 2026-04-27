@@ -17,13 +17,18 @@ import DataTable from "primevue/datatable";
 import Menu from "primevue/menu";
 import Row from "primevue/row";
 import ToastService from "primevue/toastservice";
+import Dialog from "primevue/dialog";
+import Button from "primevue/button";
 
 const app = createApp(App)
 
 app.use(router)
 app.use(PrimeVue, {
     theme: {
-        preset: Lara
+        preset: Lara,
+        options: {
+            darkModeSelector: '.app-dark'
+        }
     }
 })
 
@@ -35,5 +40,7 @@ app.component("DataTable", DataTable);
 app.component("Column", Column);
 app.component("ColumnGroup", ColumnGroup);
 app.component("Row", Row);
+app.component("Dialog", Dialog);
+app.component("Button", Button);
 
 app.mount('#app')

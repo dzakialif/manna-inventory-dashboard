@@ -18,24 +18,20 @@ const layoutState = reactive({
     activeMenuItem: null
 });
 
+if (typeof document !== 'undefined') {
+    document.documentElement.classList.remove('app-dark');
+}
+
 export function useLayout() {
     const setActiveMenuItem = (item) => {
         layoutState.activeMenuItem = item.value || item;
     };
 
     const toggleDarkMode = () => {
-        if (!document.startViewTransition) {
-            executeDarkModeToggle();
-
-            return;
+        layoutConfig.darkTheme = false;
+        if (typeof document !== 'undefined') {
+            document.documentElement.classList.remove('app-dark');
         }
-
-        document.startViewTransition(() => executeDarkModeToggle(event));
-    };
-
-    const executeDarkModeToggle = () => {
-        layoutConfig.darkTheme = !layoutConfig.darkTheme;
-        document.documentElement.classList.toggle('app-dark');
     };
 
     const toggleMenu = () => {

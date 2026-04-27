@@ -60,6 +60,17 @@ export default {
         };
     },
     computed: {
+        currentPageTitle() {
+            const routeTitles = {
+                dashboard: "Dashboard",
+                barang: "Data Barang",
+            };
+
+            return routeTitles[this.$route?.name] || "Dashboard";
+        },
+        currentPageLink() {
+            return this.$route?.path || "/dashboard";
+        },
         user() {
             // UI mode fallback while auth integration is temporarily disabled.
             return {
@@ -428,8 +439,8 @@ export default {
             >
                 <Icon icon="mdi:menu" class="text-primary text-2xl"></Icon>
             </button>
-            <router-link to="/dashboard" class="layout-topbar-logo">
-                Dashboard
+            <router-link :to="currentPageLink" class="layout-topbar-logo">
+                {{ currentPageTitle }}
             </router-link>
         </div>
 

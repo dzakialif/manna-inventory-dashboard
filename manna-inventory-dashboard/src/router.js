@@ -19,6 +19,17 @@ const router = createRouter({
                     component: () => import("@/pages/dashboard/Dashboard.vue")
                 }
             ]
+        },
+        {
+            path: "/barang",
+            component: AppLayout,
+            children: [
+                {
+                    path: "",
+                    name: "barang",
+                    component: () => import("@/pages/barang/Barang.vue")
+                }
+            ]
         }
     ]
 })

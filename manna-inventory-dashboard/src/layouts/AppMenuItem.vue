@@ -40,19 +40,43 @@ export default {
         this.itemKey = this.parentItemKey
             ? this.parentItemKey + "-" + this.index
             : String(this.index);
-        const activeItem = this.layoutState.activeMenuItem;
-        this.isActiveMenu =
-            activeItem === this.itemKey ||
-            (activeItem ? activeItem.startsWith(this.itemKey + "-") : false);
+        this.syncActiveState();
     },
     watch: {
         "layoutState.activeMenuItem"(newVal) {
-            this.isActiveMenu =
-                newVal === this.itemKey ||
-                newVal.startsWith(this.itemKey + "-");
+            this.syncActiveState(newVal);
+        },
+        "route.path"() {
+            this.syncActiveState();
         },
     },
     methods: {
+        syncActiveState(activeItemKey = this.layoutState.activeMenuItem) {
+            const keyMatch =
+                activeItemKey === this.itemKey ||
+                (activeItemKey
+                    ? activeItemKey.startsWith(this.itemKey + "-")
+                    : false);
+
+            const routeMatch = this.item?.items
+                ? this.hasActiveChild(this.item)
+                : this.checkActiveRoute(this.item);
+
+            this.isActiveMenu = Boolean(keyMatch || routeMatch);
+        },
+        hasActiveChild(item) {
+            if (!item?.items?.length) {
+                return false;
+            }
+
+            return item.items.some((child) => {
+                if (this.checkActiveRoute(child)) {
+                    return true;
+                }
+
+                return this.hasActiveChild(child);
+            });
+        },
         itemClick(event, item) {
             if (item.disabled) {
                 event.preventDefault();
@@ -76,8 +100,8 @@ export default {
             this.setActiveMenuItem(foundItemKey);
         },
         checkActiveRoute(item) {
-            let a = this.route.path.split("/")[1];
-            let b = item.to?.split("/")[1] || "";
+            const a = this.route.path.split("/")[1] || "";
+            const b = item?.to?.split("/")[1] || "";
             return a === b;
         },
     },

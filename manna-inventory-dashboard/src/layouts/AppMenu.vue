@@ -9,21 +9,20 @@ const model = ref([
       { label: 'Dashboard', icon: 'mdi:home', to: '/dashboard' },
       { label: 'Master Data', icon: 'mdi:database', 
       items: [
-        { label: 'Kategori Barang', icon:'mdi:category', to: '/collect' },
-        { label: 'Barang', icon: 'mdi:package', to: '/collection-point' },
+        { label: 'Kategori Barang', icon:'mdi:category', to: '/kategori-barang' },
+        { label: 'Barang', icon: 'mdi:package', to: '/barang' },
       ]
     },
     { label: 'Stok Opname', icon: 'mdi:clipboard-list', to:'/stock-opname' },
     { label: 'Transaksi', icon: 'mdi:receipt-text', 
     items: [
-      { label: 'Barang Masuk', icon: 'mdi:arrow-collapse-right', to: '/collect' },
-      { label: 'Barang Keluar', icon: 'mdi:arrow-collapse-left', to: '/collection-point' },
+      { label: 'Barang Masuk', icon: 'mdi:arrow-collapse-right', to: '/barang-masuk' },
+      { label: 'Barang Keluar', icon: 'mdi:arrow-collapse-left', to: '/barang-keluar' },
       ]
     },
     { label: 'Analisis', icon: 'mdi:analytics', items: [
-      { label: 'ABC Analysis', icon: 'mdi:chart-pie', to: '/abc-analysis' },
-      { label: 'Reorder Point', icon: 'mdi:refresh', to: '/rop' },
-      { label: 'Forecasting', icon: 'mdi:chart-bar', to: '/forecasting' },
+      { label: 'Analisis ABC', icon: 'mdi:chart-pie', to: '/abc-analysis' },
+      { label: 'Analisis Persediaan', icon: 'mdi:refresh', to: '/rop' },
     ]},
     ]
   },
