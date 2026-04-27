@@ -1,0 +1,96 @@
+/**
+`* Font face : Roboto
+ */
+@font-face {
+  font-family: 'roboto-bold';
+  src: url('@/assets/fonts/Roboto-Bold.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'roboto-bolditalic';
+  src: url('@/assets/fonts/Roboto-BoldItalic.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'roboto-italic';
+  src: url('@/assets/fonts/Roboto-Italic.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'roboto-light';
+  src: url('@/assets/fonts/Roboto-Light.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'roboto-lightitalic';
+  src: url('@/assets/fonts/Roboto-LightItalic.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'roboto-medium';
+  src: url('@/assets/fonts/Roboto-Medium.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'roboto-mediumitalic';
+  src: url('@/assets/fonts/Roboto-MediumItalic.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'roboto-regular';
+  src: url('@/assets/fonts/Roboto-Regular.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'roboto-thin';
+  src: url('@/assets/fonts/Roboto-Thin.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'roboto-thinitalic';
+  src: url('@/assets/fonts/Roboto-ThinItalic.ttf') format('truetype');
+  font-display: swap;
+}
+
+/**
+`* Fonts Declare
+ */
+.roboto-bold {
+  font-family: 'roboto-bold';
+}
+.roboto-bolditalic {
+  font-family: 'roboto-bolditalic';
+}
+.roboto-italic {
+  font-family: 'roboto-italic';
+}
+.roboto-light {
+  font-family: 'roboto-light';
+}
+.roboto-lightitalic {
+  font-family: 'roboto-lightitalic';
+}
+.roboto-medium {
+  font-family: 'roboto-medium';
+}
+.roboto-mediumitalic {
+  font-family: 'roboto-mediumitalic';
+}
+.roboto-regular {
+  font-family: 'roboto-regular';
+}
+.roboto-thin {
+  font-family: 'roboto-thin';
+}
+.roboto-thinitalic {
+  font-family: 'roboto-thinitalic';
+}

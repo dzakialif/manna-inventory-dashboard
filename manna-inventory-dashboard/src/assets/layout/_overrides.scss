@@ -1,0 +1,421 @@
+// Suggested location to add your overrides so that migration would be easy by just updating the SASS folder in the future
+::placeholder {
+    color: $black;
+    opacity: .6;
+}
+:-ms-input-placeholder {
+    color: $black;
+    opacity: .6;
+}
+::-ms-input-placeholder {
+    color: $black;
+    opacity: .6;
+}
+
+body {
+    font-family: 'roboto-regular';
+}
+
+button:focus {
+    box-shadow: none !important;
+}
+
+.text-10 { font-size: 10px; }
+.text-11 { font-size: 11px; }
+.text-12 { font-size: 12px; }
+.text-13 { font-size: 13px; }
+.text-14 { font-size: 14px; }
+.text-15 { font-size: 15px; }
+.text-16 { font-size: 16px; }
+.text-17 { font-size: 17px; }
+.text-18 { font-size: 18px; }
+.text-20 { font-size: 20px; }
+.text-22 { font-size: 22px; }
+.text-24 { font-size: 24px; }
+.text-26 { font-size: 26px; }
+.text-28 { font-size: 28px; }
+.text-32 { font-size: 32px; }
+.text-36 { font-size: 36px; }
+.text-42 { font-size: 42px; }
+
+.text-primary {
+    color: $primaryColor !important;
+}
+// Disabled - using Tailwind hover classes
+// .text-primary.link:hover {
+//     color: $blue !important;
+// }
+.text-black {
+    color: $black;
+}
+
+.border-gray {
+    border: solid 1px $borderColor;
+}
+
+.bg-linear-primary {
+    background: $linearPrimary;
+}
+.bg-linear-secondary {
+    background: $linearSecondary;
+}
+.bg-linear-red {
+    background: $linearRed;
+}
+.bg-linear-green {
+    background: $linearGreen;
+}
+.bg-gray {
+    background-color: $authBorder;
+}
+
+.p-inputtext {
+    height: 41px;
+    padding: .75rem 1.5rem;
+    border: 1px solid $formBorder;
+    border-radius: $formRadius;
+    font-family: 'roboto-regular';
+    color: $black;
+  
+    &:enabled:focus {
+        box-shadow: 0 0 0 0.2rem #c7d2fe;
+        border-color: $primaryColor;
+    }
+}
+.p-inputtextarea {
+    height: auto;
+}
+
+.btn-primary {
+    height: 40px;
+    border: none;
+    background-color: $primaryColor;
+  
+    &:enabled:hover {
+      background-color: $darkPrimaryColor;
+    }
+    &:active {
+      background-color: $darkPrimaryColor;
+    }
+    &:focus-visible {
+      outline: none;
+    }
+}
+
+.btn-outline-primary {
+    height: 40px;
+    color: $primaryColor;
+    border: solid 1px $primaryColor;
+    background-color: $white;
+  
+    &:enabled:hover {
+      background-color: $primaryColor;
+    }
+    &:active {
+      background-color: $primaryColor;
+    }
+    &:focus-visible {
+      outline: none;
+    }
+}
+
+.btn-white {
+    height: 40px;
+    border: solid 1px $formBorder;
+    background-color: $white;
+    color: $black1;
+  
+    &:enabled:hover {
+      background-color: $primaryColor;
+      border-color: $primaryColor;
+      svg g {
+        fill: #fff;
+      }
+    }
+    &:active {
+      background-color: $primaryColor;
+      border-color: $primaryColor;
+    }
+    &:focus-visible {
+      outline: none;
+    }
+}
+
+.btn-green {
+    height: 40px;
+    border: none;
+    background-color: $green;
+  
+    &:enabled:hover {
+      background-color: $darkGreen;
+    }
+    &:active {
+      background-color: $darkGreen;
+    }
+    &:focus-visible {
+      outline: none;
+    }
+}
+
+.btn-red {
+    height: 40px;
+    border: none;
+    background-color: $red;
+  
+    &:enabled:hover {
+      background-color: $darkRed;
+    }
+    &:active {
+      background-color: $darkRed;
+    }
+    &:focus-visible {
+      outline: none;
+    }
+}
+
+.layout-menu li .layout-menuitem-root-text {
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: $primaryColor;
+    opacity: 0.5;
+    font-family: 'roboto-light';
+}
+
+.p-badge {
+    min-width: 16px;
+    height: 16px;
+}
+
+.layout-topbar .layout-topbar-button span {
+    font-size: 12px;
+}
+
+.p-menu.p-menu-overlay.profile-dropdown {
+	min-width: 175px !important;
+    // left: 1183.48px !important;
+}
+
+.layout-menu li a {
+    height: 42px;
+    color: $black;
+    opacity: 0.6;
+    margin-bottom: .25rem;
+}
+.layout-menu li a.router-link-exact-active {
+    background: $linearPrimary;
+    color: $white;
+    opacity: 1;
+    &:focus {
+        box-shadow: none;
+    }
+}
+
+.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+    border-color: $primaryColor;
+    color: $primaryColor;
+}
+.p-tabview .p-tabview-nav li .p-tabview-nav-link:not(.p-disabled):focus {
+    box-shadow: none;
+}
+
+.p-datatable-scrollable .p-datatable-thead > tr > th,
+.p-datatable-scrollable .p-datatable-tbody > tr > td,
+.p-datatable-scrollable .p-datatable-tfoot > tr > td {
+    display: table-cell !important;
+}
+
+.p-datatable-scrollable .p-datatable-thead > tr,
+.p-datatable-scrollable .p-datatable-tbody > tr,
+.p-datatable-scrollable .p-datatable-tfoot > tr {
+    display: table-row !important;
+}
+
+.p-datatable-scrollable .p-datatable-thead,
+.p-datatable-scrollable .p-datatable-tbody,
+.p-datatable-scrollable .p-datatable-tfoot {
+    display: table-row-group !important;
+}
+
+.p-datatable .p-sortable-column.p-highlight,
+.p-datatable .p-sortable-column.p-highlight .p-sortable-column-icon {
+    background-color: transparent;
+    color: $primaryColor;
+}
+
+.p-datatable .p-sortable-column.p-highlight:hover,
+.p-datatable .p-sortable-column.p-highlight:hover .p-sortable-column-icon {
+    color: $darkPrimaryColor;
+}
+
+.p-datatable .p-sortable-column:focus {
+    box-shadow: none;
+}
+
+.p-datatable .text-center .p-column-header-content {
+    justify-content: center;
+}
+
+.p-paginator {
+    justify-content: end !important;
+}
+.p-paginator .p-paginator-pages .p-paginator-page,
+.p-paginator .p-paginator-element {
+    min-width: 32px;
+    height: 32px;
+    border: solid 1px $formBorder;
+    border-radius: $formRadius;
+}
+.p-paginator .p-paginator-pages .p-paginator-page.p-highlight {
+    border-color: $blue;
+    color: $blue;
+    background-color: #E6F0FF;
+}
+.p-paginator .p-dropdown {
+    height: 32px;
+    .p-inputtext {
+        height: auto;
+        padding: 5px 5px 5px 10px;
+    }
+    .p-inputtext:focus-visible {
+        box-shadow: none;
+        border: none;
+        outline: 0;
+    }
+    .p-dropdown-trigger {
+        width: 20px;
+    }
+}
+.p-dropdown:not(.p-disabled):hover {
+    border-color: $blue;
+}
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+    color: $blue;
+}
+.p-dropdown:not(.p-disabled).p-focus {
+    box-shadow: none;
+}
+.p-paginator .p-paginator-first,
+.p-paginator .p-paginator-prev,
+.p-paginator .p-paginator-next,
+.p-paginator .p-paginator-last,
+.p-paginator .p-paginator-pages .p-paginator-page {
+    color: $black;
+}
+
+.p-dialog .p-dialog-header {
+    padding: 1rem 1.5rem;
+}
+
+.p-inputswitch.p-inputswitch-checked .p-inputswitch-slider,
+.p-inputswitch.p-inputswitch-checked:not(.p-disabled):hover .p-inputswitch-slider {
+    background: $linearPrimary;
+}
+
+.p-fileupload-files {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    cursor: pointer;
+}
+
+.p-fileupload-row {
+    display: block !important;
+    width: 150px;
+    height: 140px;
+    border: dashed 1px $formBorder;
+    border-radius: $formRadius;
+    position: relative;
+    margin: .5rem .25rem;
+    img {
+        width: auto;
+        max-height: 80px;
+        max-width: 130px;
+    }
+    button {
+        position: absolute;
+        top: 1px;
+        right: 2px;
+        background: none;
+        border: none;
+        color: $black;
+        padding: 0 !important;
+        &:hover {
+            background: none !important;
+            border: none !important;
+            color: $black !important;
+            opacity: .6;
+        }
+    }
+    > div:first-child {
+        padding: 1rem .5rem 0 .5rem;
+        height: 100px;
+        width: 150px !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    > div:nth-child(3) {
+        display: none;
+    }
+    .p-fileupload-filename {
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+.p-fileupload-row > div {
+    text-align: center;
+    width: auto !important;
+}
+
+.single-upload .p-fileupload .p-fileupload-buttonbar {
+    display: none;
+}
+
+.p-fileupload .p-fileupload-buttonbar{
+    border: dashed 2px $borderColor;
+    border-bottom: none;
+    padding: 1rem 1.25rem;
+    .p-fileupload-choose {
+        border: none;
+        background-color: $primaryColor;
+        &:hover {
+            background-color: $darkPrimaryColor;
+        }
+        &:active {
+            background-color: $darkPrimaryColor;
+        }
+        &:focus-visible {
+            outline: none;
+        }
+    }
+}
+
+.p-fileupload-content .p-progressbar {
+    display: none;
+}
+.p-fileupload .p-fileupload-content {
+    padding: 0;
+    border-radius: 6px;
+    border: dashed 2px $borderColor;
+}
+
+.p-radiobutton .p-radiobutton-box.p-focus{
+    box-shadow: none;
+}
+.p-radiobutton .p-radiobutton-box.p-highlight {
+    border-color: #00ADD4;
+    background: linear-gradient(135deg, #00ADD4 0%, #2B3990 100%);
+}
+.p-radiobutton .p-radiobutton-box.p-highlight:not(.p-disabled):hover {
+    border-color: #00ADD4;
+    background: linear-gradient(135deg, #00ADD4 0%, #2B3990 100%);
+}
+.p-radiobutton .p-radiobutton-box:not(.p-disabled):not(.p-highlight):hover {
+    border-color: #00ADD4;
+}
+
+.p-dropdown-panel.p-component {
+    z-index: 2102 !important;
+}
