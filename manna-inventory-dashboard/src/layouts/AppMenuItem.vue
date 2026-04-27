@@ -28,6 +28,7 @@ export default {
     data() {
         return {
             isActiveMenu: false,
+            isExpandedMenu: false,
             itemKey: null,
         };
     },
@@ -58,11 +59,19 @@ export default {
                     ? activeItemKey.startsWith(this.itemKey + "-")
                     : false);
 
-            const routeMatch = this.item?.items
+            const selfRouteMatch = this.checkActiveRoute(this.item);
+            const childRouteMatch = this.item?.items
                 ? this.hasActiveChild(this.item)
-                : this.checkActiveRoute(this.item);
+                : false;
 
-            this.isActiveMenu = Boolean(keyMatch || routeMatch);
+            if (this.item?.items) {
+                this.isExpandedMenu = Boolean(keyMatch || childRouteMatch);
+                this.isActiveMenu = Boolean(keyMatch && !childRouteMatch);
+                return;
+            }
+
+            this.isActiveMenu = Boolean(keyMatch || selfRouteMatch);
+            this.isExpandedMenu = this.isActiveMenu;
         },
         hasActiveChild(item) {
             if (!item?.items?.length) {
@@ -93,7 +102,7 @@ export default {
                 item.command({ originalEvent: event, item: item });
             }
             const foundItemKey = item.items
-                ? this.isActiveMenu
+                ? this.isExpandedMenu
                     ? this.parentItemKey
                     : this.itemKey
                 : this.itemKey;
@@ -143,7 +152,8 @@ export default {
                 icon="mdi:chevron-down"
                 :class="[
                     'w-4 h-4 ml-auto transition-transform duration-200',
-                    isActiveMenu ? '-rotate-180 text-white' : 'text-primary'
+                    isExpandedMenu ? '-rotate-180' : '',
+                    isActiveMenu ? 'text-white' : 'text-primary'
                 ]"
                 v-if="item.items"
             />
@@ -176,7 +186,7 @@ export default {
             v-if="item.items && item.visible !== false"
             name="layout-submenu"
         >
-            <ul v-show="root ? true : isActiveMenu" class="layout-submenu ml-2 mt-1">
+            <ul v-show="root ? true : isExpandedMenu" class="layout-submenu ml-2 mt-1">
                 <app-menu-item
                     v-for="(child, i) in item.items"
                     :key="child"

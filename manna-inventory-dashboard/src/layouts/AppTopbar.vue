@@ -64,6 +64,12 @@ export default {
             const routeTitles = {
                 dashboard: "Dashboard",
                 barang: "Data Barang",
+                barang_masuk: "Barang Masuk",
+                barang_keluar: "Barang Keluar",
+                kategori_barang: "Kategori Barang",
+                stock_opname: "Stok Opname",
+                abc_analysis: "Analisis ABC",
+                stock_analysis: "Analisis Persediaan",
             };
 
             return routeTitles[this.$route?.name] || "Dashboard";
