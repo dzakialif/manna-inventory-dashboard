@@ -28,6 +28,7 @@ export default {
     data() {
         return {
             isActiveMenu: false,
+            isExpandedMenu: false,
             itemKey: null,
         };
     },
@@ -40,19 +41,51 @@ export default {
         this.itemKey = this.parentItemKey
             ? this.parentItemKey + "-" + this.index
             : String(this.index);
-        const activeItem = this.layoutState.activeMenuItem;
-        this.isActiveMenu =
-            activeItem === this.itemKey ||
-            (activeItem ? activeItem.startsWith(this.itemKey + "-") : false);
+        this.syncActiveState();
     },
     watch: {
         "layoutState.activeMenuItem"(newVal) {
-            this.isActiveMenu =
-                newVal === this.itemKey ||
-                newVal.startsWith(this.itemKey + "-");
+            this.syncActiveState(newVal);
+        },
+        "route.path"() {
+            this.syncActiveState();
         },
     },
     methods: {
+        syncActiveState(activeItemKey = this.layoutState.activeMenuItem) {
+            const keyMatch =
+                activeItemKey === this.itemKey ||
+                (activeItemKey
+                    ? activeItemKey.startsWith(this.itemKey + "-")
+                    : false);
+
+            const selfRouteMatch = this.checkActiveRoute(this.item);
+            const childRouteMatch = this.item?.items
+                ? this.hasActiveChild(this.item)
+                : false;
+
+            if (this.item?.items) {
+                this.isExpandedMenu = Boolean(keyMatch || childRouteMatch);
+                this.isActiveMenu = Boolean(keyMatch && !childRouteMatch);
+                return;
+            }
+
+            this.isActiveMenu = Boolean(keyMatch || selfRouteMatch);
+            this.isExpandedMenu = this.isActiveMenu;
+        },
+        hasActiveChild(item) {
+            if (!item?.items?.length) {
+                return false;
+            }
+
+            return item.items.some((child) => {
+                if (this.checkActiveRoute(child)) {
+                    return true;
+                }
+
+                return this.hasActiveChild(child);
+            });
+        },
         itemClick(event, item) {
             if (item.disabled) {
                 event.preventDefault();
@@ -69,15 +102,15 @@ export default {
                 item.command({ originalEvent: event, item: item });
             }
             const foundItemKey = item.items
-                ? this.isActiveMenu
+                ? this.isExpandedMenu
                     ? this.parentItemKey
                     : this.itemKey
                 : this.itemKey;
             this.setActiveMenuItem(foundItemKey);
         },
         checkActiveRoute(item) {
-            let a = this.route.path.split("/")[1];
-            let b = item.to?.split("/")[1] || "";
+            const a = this.route.path.split("/")[1] || "";
+            const b = item?.to?.split("/")[1] || "";
             return a === b;
         },
     },
@@ -119,7 +152,8 @@ export default {
                 icon="mdi:chevron-down"
                 :class="[
                     'w-4 h-4 ml-auto transition-transform duration-200',
-                    isActiveMenu ? '-rotate-180 text-white' : 'text-primary'
+                    isExpandedMenu ? '-rotate-180' : '',
+                    isActiveMenu ? 'text-white' : 'text-primary'
                 ]"
                 v-if="item.items"
             />
@@ -152,7 +186,7 @@ export default {
             v-if="item.items && item.visible !== false"
             name="layout-submenu"
         >
-            <ul v-show="root ? true : isActiveMenu" class="layout-submenu ml-2 mt-1">
+            <ul v-show="root ? true : isExpandedMenu" class="layout-submenu ml-2 mt-1">
                 <app-menu-item
                     v-for="(child, i) in item.items"
                     :key="child"
