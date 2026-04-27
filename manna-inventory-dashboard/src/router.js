@@ -43,16 +43,16 @@ const router = createRouter({
                 //     name: "stock_opname",
                 //     component: () => import("@/pages/stock-opname/StockOpname.vue")
                 // },
-                // {
-                //     path: "/abc-analysis",
-                //     name: "abc_analysis",
-                //     component: () => import("@/pages/abc-analysis/ABCAnalysis.vue")
-                // },
-                // {
-                //     path: "/stock-analysis",
-                //     name: "stock_analysis",
-                //     component: () => import("@/pages/stock-analysis/StockAnalysis.vue")
-                // },
+                {
+                    path: "/abc-analysis",
+                    name: "abc_analysis",
+                    component: () => import("@/pages/abc-analysis/ABCAnalysis.vue")
+                },
+                {
+                    path: "/stock-analysis",
+                    name: "stock_analysis",
+                    component: () => import("@/pages/stock-analysis/StockAnalysis.vue")
+                },
             ]
         },
     ]

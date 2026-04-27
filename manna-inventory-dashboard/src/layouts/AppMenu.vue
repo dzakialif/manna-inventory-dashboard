@@ -22,7 +22,7 @@ const model = ref([
     },
     { label: 'Analisis', icon: 'mdi:analytics', items: [
       { label: 'Analisis ABC', icon: 'mdi:chart-pie', to: '/abc-analysis' },
-      { label: 'Analisis Persediaan', icon: 'mdi:refresh', to: '/rop' },
+      { label: 'Analisis Persediaan', icon: 'mdi:chart-finance', to: '/stock-analysis' },
     ]},
     ]
   },
