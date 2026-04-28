@@ -64,6 +64,8 @@ export default {
             const routeTitles = {
                 dashboard: "Dashboard",
                 barang: "Data Barang",
+                create_barang: "Data Barang",
+                edit_barang: "Data Barang",
                 barang_masuk: "Barang Masuk",
                 barang_keluar: "Barang Keluar",
                 kategori_barang: "Kategori Barang",

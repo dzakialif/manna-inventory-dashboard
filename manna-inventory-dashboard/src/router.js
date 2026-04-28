@@ -24,6 +24,16 @@ const router = createRouter({
                     component: () => import("@/pages/barang/Barang.vue")
                 },
                 {
+                    path: "/barang/create",
+                    name: "create_barang",
+                    component: () => import("@/pages/barang/Form.vue")
+                },
+                {
+                    path: "/barang/edit/:id",
+                    name: "edit_barang",
+                    component: () => import("@/pages/barang/Form.vue")
+                },
+                {
                     path: "/barang-masuk",
                     name: "barang_masuk",
                     component: () => import("@/pages/barang-masuk/BarangMasuk.vue")
@@ -38,21 +48,21 @@ const router = createRouter({
                 //     name: "kategori_barang",
                 //     component: () => import("@/pages/kategori-barang/KategoriBarang.vue")
                 // },
-                // {
-                //     path: "/stock-opname",
-                //     name: "stock_opname",
-                //     component: () => import("@/pages/stock-opname/StockOpname.vue")
-                // },
-                // {
-                //     path: "/abc-analysis",
-                //     name: "abc_analysis",
-                //     component: () => import("@/pages/abc-analysis/ABCAnalysis.vue")
-                // },
-                // {
-                //     path: "/stock-analysis",
-                //     name: "stock_analysis",
-                //     component: () => import("@/pages/stock-analysis/StockAnalysis.vue")
-                // },
+                {
+                    path: "/stock-opname",
+                    name: "stock_opname",
+                    component: () => import("@/pages/stock-opname/StockOpname.vue")
+                },
+                {
+                    path: "/abc-analysis",
+                    name: "abc_analysis",
+                    component: () => import("@/pages/abc-analysis/ABCAnalysis.vue")
+                },
+                {
+                    path: "/stock-analysis",
+                    name: "stock_analysis",
+                    component: () => import("@/pages/stock-analysis/StockAnalysis.vue")
+                },
             ]
         },
     ]
