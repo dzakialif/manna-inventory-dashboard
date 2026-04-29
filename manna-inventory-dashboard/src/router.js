@@ -54,6 +54,16 @@ const router = createRouter({
                     component: () => import("@/pages/stock-opname/StockOpname.vue")
                 },
                 {
+                    path: "/stock-opname/create",
+                    name: "create_opname",
+                    component: () => import("@/pages/stock-opname/Form.vue")
+                },
+                {
+                    path: "/stock-opname/edit/:id",
+                    name: "edit_opname",
+                    component: () => import("@/pages/stock-opname/Form.vue")
+                },
+                {
                     path: "/abc-analysis",
                     name: "abc_analysis",
                     component: () => import("@/pages/abc-analysis/ABCAnalysis.vue")

@@ -104,13 +104,6 @@ export default {
         };
     },
     methods: {
-        formatCurrency(value) {
-            return new Intl.NumberFormat("id-ID", {
-                style: "currency",
-                currency: "IDR",
-                minimumFractionDigits: 0
-            }).format(value);
-        },
         formatSelisih(value) {
             if (value > 0) return `+${value}`;
 
@@ -122,11 +115,10 @@ export default {
             return "text-danger";
         },
         editItem(item) {
-            this.$toast?.add?.({
-                severity: "info",
-                summary: "Edit Mode",
-                detail: `Edit ${item.nama}`,
-                life: 2500,
+            sessionStorage.setItem("opname_edit_draft", JSON.stringify(item));
+            this.$router.push({
+                name: "edit_opname",
+                params: { id: item.id },
             });
         },
         confirmDelete(item) {
@@ -143,7 +135,7 @@ export default {
             this.$toast?.add?.({
                 severity: "success",
                 summary: "Berhasil",
-                detail: "Data barang dihapus",
+                detail: "Data opname dihapus",
                 life: 2500,
             });
         },
@@ -157,11 +149,11 @@ export default {
 <template>
     <div class="card">
         <div class="text-right mb-6">
-            <button
-                class="inline-flex items-center font-farro rounded-lg btn-primary text-sm text-white hover:bg-primary-dark transition duration-200 p-4"
+            <router-link to="/stock-opname/create"
+                class="h-12 inline-flex items-center font-farro rounded-lg btn-primary text-white hover:bg-primary-dark transition duration-200 px-5 hover:text-white"
             >
-                <Icon icon="mdi:plus" class="text-xl mr-2"></Icon> Tambah Barang
-            </button>
+                <Icon icon="mdi:plus" class="text-xl mr-2"></Icon> Tambah
+            </router-link>
         </div>
 
         <DataTable
@@ -194,7 +186,7 @@ export default {
                 filter
                 :showFilterMenu="false"
                 filterPlaceholder="Cari tanggal opname..."
-                style="min-width: 12rem"
+                style="min-width: 10rem"
             >
                 <template #body="{ data }">{{ data.tanggal_opname }}</template>
                 <template #filter="{ filterModel, filterCallback }">
@@ -217,7 +209,7 @@ export default {
                 filter
                 :showFilterMenu="false"
                 filterPlaceholder="Cari nama barang..."
-                style="min-width: 12rem"
+                style="min-width: 18rem"
             >
                 <template #body="{ data }">{{ data.nama }}</template>
                 <template #filter="{ filterModel, filterCallback }">
@@ -240,7 +232,7 @@ export default {
                 filter
                 :showFilterMenu="false"
                 filterPlaceholder="Cari stok sistem..."
-                style="min-width: 12rem"
+                style="min-width: 10rem"
             >
                 <template #body="{ data }">{{ data.stok_sistem }}</template>
                 <template #filter="{ filterModel, filterCallback }">
@@ -263,7 +255,7 @@ export default {
                 filter
                 :showFilterMenu="false"
                 filterPlaceholder="Cari stok fisik..."
-                style="min-width: 12rem"
+                style="min-width: 10rem"
             >
                 <template #body="{ data }">{{ data.stok_fisik }}</template>
                 <template #filter="{ filterModel, filterCallback }">
@@ -286,7 +278,7 @@ export default {
                 filter
                 :showFilterMenu="false"
                 filterPlaceholder="Cari selisih..."
-                style="min-width: 12rem"
+                style="min-width: 10rem"
             >
                 <template #body="{ data }">
                     <span :class="getSelisihClass(data.selisih)">
@@ -313,7 +305,7 @@ export default {
                 filter
                 :showFilterMenu="false"
                 filterPlaceholder="Cari note..."
-                style="min-width: 12rem"
+                style="min-width: 15rem"
             >
                 <template #body="{ data }">{{ data.note }}</template>
                 <template #filter="{ filterModel, filterCallback }">
@@ -340,7 +332,17 @@ export default {
                     <Menu
                         :ref="`menu_${data.id}`"
                         :id="'overlay_menu_' + data.id"
+                        class="font-farro"
                         :popup="true"
+                        :pt="{
+                            root: { class: 'font-farro' },
+                            menu: { class: 'font-farro' },
+                            item: { class: 'font-farro' },
+                            itemContent: { class: 'font-farro text-gray-700 hover:text-gray-700' },
+                            itemLink: { class: 'font-farro text-gray-700 hover:text-gray-700 focus:text-gray-700' },
+                            itemLabel: { class: 'font-farro text-gray-700' },
+                            itemIcon: { class: 'text-gray-700' }
+                        }"
                         :model="[
                             {
                                 label: 'Edit',
