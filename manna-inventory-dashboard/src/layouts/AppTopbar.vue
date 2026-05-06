@@ -847,7 +847,7 @@ export default {
                 icon="pi pi-check"
                 :disabled="unreadNotificationCount === 0"
                 @click="markAllNotificationsAsRead"
-                class="w-full mt-5"
+                class="w-full !bg-primary hover:!bg-primary-dark mt-5"
             />
         </template>
     </Dialog>
