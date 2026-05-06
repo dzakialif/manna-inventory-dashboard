@@ -1,13 +1,22 @@
 <script>
+<<<<<<< Updated upstream
 import Dropdown from "primevue/dropdown";
 
 export default {
     components: {
         Dropdown,
+=======
+import Select from "primevue/select";
+
+export default {
+    components: {
+        Select,
+>>>>>>> Stashed changes
     },
     data() {
         return {
             form: this.getDefaultForm(),
+            barangOptions: ['Moiaa Swiss Choco 1000 grm', 'Moiaa Mango 200 grm', 'Moiaa Mango 1000 grm', 'SBC Cappucino Original 1000 grm', 'Moiaa Swiss Choco 200 grm'],
         };
     },
     computed: {
@@ -107,11 +116,25 @@ export default {
 
                 <div class="form-group mb-2 w-full">
                     <label class="mb-2 block font-farro">Nama Barang <span class="text-red-500">*</span></label>
-                    <input
+                    <Select
                         v-model="form.nama"
-                        type="text"
-                        class="font-farro h-12 w-full rounded-lg border border-gray-300 px-4 focus:ring-2 focus:ring-primary focus:outline-none"
-                        placeholder="Masukkan nama barang..."
+                        :options="barangOptions"
+                        placeholder="Pilih barang"
+                        class="font-farro w-full"
+                        showClear
+                        :pt="{
+                        root: {
+                            class: 'flex items-center !bg-white !text-black !border !border-gray-300 !rounded-lg !h-12 !w-full focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
+                        },
+                        label: { class: form.nama ? '!text-black !text-md' : '!text-gray-400 !text-md' },
+                        dropdown: { class: '!text-gray-500 !bg-white' },
+                        overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
+                        listContainer: { class: 'bg-white' },
+                        list: { class: '!bg-white' },
+                        option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
+                        optionLabel: { class: '!text-black' },
+                        emptyMessage: { class: '!text-black !bg-white' },
+                        }"
                     />
                 </div>
             </div>
@@ -153,10 +176,10 @@ export default {
             <div class="flex justify-center gap-4 mb-4">
                 <div class="form-group mb-2 w-full">
                     <label class="mb-2 block font-farro">Catatan <span class="text-red-500">*</span></label>
-                    <input
+                    <Textarea
                         v-model="form.note"
                         type="text"
-                        class="font-farro h-12 w-full rounded-lg border border-gray-300 px-4 focus:ring-2 focus:ring-primary focus:outline-none"
+                        class="font-farro w-full rounded-lg border border-gray-300 p-4 focus:ring-2 focus:ring-primary focus:outline-none"
                         placeholder="Input catatan..."
                     />
                 </div>
