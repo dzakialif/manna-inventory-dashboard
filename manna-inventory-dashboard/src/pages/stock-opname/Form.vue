@@ -1,17 +1,9 @@
 <script>
-<<<<<<< Updated upstream
-import Dropdown from "primevue/dropdown";
-
-export default {
-    components: {
-        Dropdown,
-=======
 import Select from "primevue/select";
 
 export default {
     components: {
         Select,
->>>>>>> Stashed changes
     },
     data() {
         return {
@@ -195,7 +187,7 @@ export default {
                 </router-link>
                 <button
                     type="submit"
-                    class="h-12 rounded-lg btn-primary px-5 font-farro text-white hover:bg-primary-dark transition duration-200"
+                    class="h-12 rounded-lg bg-primary px-5 font-farro text-white hover:bg-primary-dark transition duration-200"
                 >
                     Simpan
                 </button>
@@ -205,17 +197,4 @@ export default {
 </template>
 
 <style lang="scss" scoped>
-:deep(.kategori-dropdown.p-focus) {
-    border-color: var(#037D5B) !important;
-    box-shadow: 0 0 0 1px var(--primary-color) !important;
-    outline: none !important;
-}
-
-:deep(.kategori-dropdown-panel .p-dropdown-item.p-highlight) {
-    background: var(#F3F5F8) !important;
-}
-
-:deep(.kategori-dropdown-panel .p-dropdown-item:not(.p-highlight):hover) {
-    background: var(#E9F2EC) !important;
-}
 </style>

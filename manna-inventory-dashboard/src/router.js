@@ -34,9 +34,9 @@ const router = createRouter({
                     component: () => import("@/pages/barang/Form.vue")
                 },
                 {
-                    path: "/barang-masuk",
-                    name: "barang_masuk",
-                    component: () => import("@/pages/barang-masuk/BarangMasuk.vue")
+                    path: "/transaksi",
+                    name: "transaksi",
+                    component: () => import("@/pages/transaksi/Transaksi.vue")
                 },
                 {
                     path: "/barang-keluar",
@@ -69,9 +69,19 @@ const router = createRouter({
                     component: () => import("@/pages/abc-analysis/ABCAnalysis.vue")
                 },
                 {
+                    path: "/abc-analysis/detail/:id",
+                    name: "abc_analysis_detail",
+                    component: () => import("@/pages/abc-analysis/Details.vue")
+                },
+                {
                     path: "/stock-analysis",
                     name: "stock_analysis",
                     component: () => import("@/pages/stock-analysis/StockAnalysis.vue")
+                },
+                {
+                    path: "/stock-analysis/detail/:id",
+                    name: "stock_analysis_detail",
+                    component: () => import("@/pages/stock-analysis/Details.vue")
                 },
             ]
         },

@@ -10,8 +10,46 @@ export default {
     data() {
         return {
             userProfile: null,
+            notifications: [
+                {
+                    title: "Stok menipis",
+                    message: "Beberapa item perlu segera di-restock.",
+                    read: false,
+                },
+                {
+                    title: "Barang masuk baru",
+                    message: "Transaksi barang masuk telah berhasil disimpan.",
+                    read: false,
+                },
+                {
+                    title: "Permintaan pembelian",
+                    message: "Ada permintaan pembelian baru yang menunggu persetujuan.",
+                    read: false,
+                },
+                {
+                    title: "Stok kritis",
+                    message: "Beberapa barang sudah masuk batas minimum stok.",
+                    read: false,
+                },
+                {
+                    title: "Laporan harian siap",
+                    message: "Ringkasan aktivitas gudang hari ini telah tersedia.",
+                    read: true,
+                },
+                {
+                    title: "Pembaruan harga",
+                    message: "Ada perubahan harga pada beberapa item persediaan.",
+                    read: true,
+                },
+                {
+                    title: "Stock opname selesai",
+                    message: "Proses stock opname hari ini sudah selesai.",
+                    read: true,
+                },
+            ],
             show_dialog: {
                 profile: false,
+                notifications: false,
             },
             toggleMenu: null,
             overlayMenuProfiles: [
@@ -71,6 +109,7 @@ export default {
                 kategori_barang: "Kategori Barang",
                 stock_opname: "Stok Opname",
                 abc_analysis: "Analisis ABC",
+                abc_analysis_detail: "Analisis ABC",
                 stock_analysis: "Analisis Persediaan",
             };
 
@@ -78,6 +117,15 @@ export default {
         },
         currentPageLink() {
             return this.$route?.path || "/dashboard";
+        },
+        unreadNotificationCount() {
+            return this.notifications.filter((notification) => !notification.read)
+                .length;
+        },
+        notificationBadgeLabel() {
+            return this.unreadNotificationCount > 99
+                ? "99+"
+                : String(this.unreadNotificationCount);
         },
         user() {
             // UI mode fallback while auth integration is temporarily disabled.
@@ -141,6 +189,28 @@ export default {
         };
     },
     methods: {
+        openNotificationDialog() {
+            this.show_dialog.notifications = true;
+        },
+        markNotificationAsRead(notification) {
+            if (notification.read) {
+                return;
+            }
+
+            notification.read = true;
+        },
+        markAllNotificationsAsRead() {
+            this.notifications = this.notifications.map((notification) => ({
+                ...notification,
+                read: true,
+            }));
+
+            this.$toast.add({
+                severity: "success",
+                summary: "Semua notifikasi dibaca",
+                life: 2500,
+            });
+        },
         async fetchUserProfile() {
             try {
                 const response = await axios.get(
@@ -202,33 +272,6 @@ export default {
         async onInputFile(event) {
             const file = event.target.files[0];
             if (!file) return;
-
-            const allowedTypes = [
-                "image/jpeg",
-                "image/jpg",
-                "image/png",
-                "image/webp",
-            ];
-            if (!allowedTypes.includes(file.type)) {
-                this.$toast.add({
-                    severity: "error",
-                    summary: "Format tidak didukung",
-                    detail: "Hanya JPEG, JPG, PNG, atau WebP",
-                    life: 5000,
-                });
-                return;
-            }
-
-            if (file.size > 2 * 1024 * 1024) {
-                this.$toast.add({
-                    severity: "error",
-                    summary: "File terlalu besar",
-                    detail: "Maksimal 2MB",
-                    life: 5000,
-                });
-                return;
-            }
-
             try {
                 const base64String = await this.convertFileToBase64(file);
 
@@ -455,6 +498,23 @@ export default {
         <div class="layout-topbar-actions">
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
+                    <button
+                        type="button"
+                        class="layout-topbar-action mr-2 relative flex items-center justify-center"
+                        aria-label="Notifications"
+                        @click="openNotificationDialog"
+                    >
+                        <Icon
+                            icon="mdi:notifications"
+                            class="text-2xl text-primary"
+                        />
+                        <div
+                            v-if="unreadNotificationCount > 0"
+                            class="absolute font-farro -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 text-center font-semibold shadow-sm"
+                        >
+                            {{ notificationBadgeLabel }}
+                        </div>
+                    </button>
                     <div class="layout-topbar-action" @click="dialogProfile()">
                         <div
                             class="photo w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600"
@@ -724,6 +784,73 @@ export default {
             </TabPanels>
         </Tabs>
     </Dialog>
+
+    <Dialog
+        v-model:visible="show_dialog.notifications"
+        header="Notifikasi"
+        :style="{ width: '560px', height: '30rem' }"
+        class="font-farro notification-dialog"
+    >
+        <div class="notification-dialog-body space-y-3 py-2 pr-1">
+            <button
+                v-for="(notification, index) in notifications"
+                :key="`${notification.title}-${index}`"
+                type="button"
+                class="flex w-full items-start gap-3 rounded-xl border border-surface-200 p-3 text-left font-farro transition-colors"
+                :class="[
+                    notification.read ? 'bg-surface-50' : 'bg-primary-50/40',
+                    notification.read
+                        ? 'cursor-default'
+                        : 'cursor-pointer hover:bg-primary-50',
+                ]"
+                @click="markNotificationAsRead(notification)"
+            >
+                <span
+                    class="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                    :class="notification.read ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'"
+                >
+                    <i
+                        :class="
+                            notification.read
+                                ? 'pi pi-check'
+                                : 'pi pi-bell'
+                        "
+                    ></i>
+                </span>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-3">
+                        <h6 class="mb-0 text-sm font-semibold">
+                            {{ notification.title }}
+                        </h6>
+                        <span class="text-[11px] text-surface-500">
+                            {{
+                                notification.read
+                                    ? 'Sudah dibaca'
+                                    : 'Belum dibaca'
+                            }}
+                        </span>
+                    </div>
+                    <p class="mb-0 mt-1 text-sm text-surface-600">
+                        {{ notification.message }}
+                    </p>
+                </div>
+            </button>
+
+            <div v-if="notifications.length === 0" class="py-6 text-center text-surface-500">
+                Tidak ada notifikasi.
+            </div>
+        </div>
+
+        <template #footer>
+            <Button
+                label="Tandai sudah dibaca semua"
+                icon="pi pi-check"
+                :disabled="unreadNotificationCount === 0"
+                @click="markAllNotificationsAsRead"
+                class="w-full mt-5"
+            />
+        </template>
+    </Dialog>
 </template>
 
 <style lang="scss" scoped>
@@ -734,6 +861,16 @@ export default {
 
 :deep(.p-dialog-content) {
     margin-top: -1.5rem;
+}
+:deep(.notification-dialog .p-dialog-content) {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+:deep(.notification-dialog-body) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
 }
 :deep(.p-tab h6) {
     font-weight: 400;

@@ -9,7 +9,7 @@
 
 <script setup>
 import AppMenu from './AppMenu.vue';
-import Logo from '@/assets/images/manna-logo.png'
+import Logo from '@/assets/images/logo-mannapanna2.png'
 </script>
 
 <style lang="scss" scoped></style>
