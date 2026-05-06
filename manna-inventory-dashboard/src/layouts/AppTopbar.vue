@@ -12,38 +12,52 @@ export default {
             userProfile: null,
             notifications: [
                 {
+                    type: "warning",
                     title: "Stok menipis",
                     message: "Beberapa item perlu segera di-restock.",
+                    time: "5 menit lalu",
                     read: false,
                 },
                 {
+                    type: "success",
                     title: "Barang masuk baru",
                     message: "Transaksi barang masuk telah berhasil disimpan.",
+                    time: "22 menit lalu",
                     read: false,
                 },
                 {
+                    type: "info",
                     title: "Permintaan pembelian",
                     message: "Ada permintaan pembelian baru yang menunggu persetujuan.",
+                    time: "1 jam lalu",
                     read: false,
                 },
                 {
+                    type: "danger",
                     title: "Stok kritis",
                     message: "Beberapa barang sudah masuk batas minimum stok.",
+                    time: "2 jam lalu",
                     read: false,
                 },
                 {
+                    type: "info",
                     title: "Laporan harian siap",
                     message: "Ringkasan aktivitas gudang hari ini telah tersedia.",
+                    time: "Kemarin",
                     read: true,
                 },
                 {
+                    type: "info",
                     title: "Pembaruan harga",
                     message: "Ada perubahan harga pada beberapa item persediaan.",
+                    time: "Kemarin",
                     read: true,
                 },
                 {
+                    type: "success",
                     title: "Stock opname selesai",
                     message: "Proses stock opname hari ini sudah selesai.",
+                    time: "2 hari lalu",
                     read: true,
                 },
             ],
@@ -104,10 +118,12 @@ export default {
                 barang: "Data Barang",
                 create_barang: "Data Barang",
                 edit_barang: "Data Barang",
-                barang_masuk: "Barang Masuk",
-                barang_keluar: "Barang Keluar",
-                kategori_barang: "Kategori Barang",
+                transaksi: "Transaksi",
+                create_transaksi: "Transaksi",
+                edit_transaksi: "Transaksi",
                 stock_opname: "Stok Opname",
+                create_opname: "Stok Opname",
+                edit_opname: "Stok Opname",
                 abc_analysis: "Analisis ABC",
                 abc_analysis_detail: "Analisis ABC",
                 stock_analysis: "Analisis Persediaan",
@@ -187,16 +203,34 @@ export default {
             name: "Guest User",
             photo_url: "",
         };
+
+        this._notifClickOutside = this.handleNotificationClickOutside.bind(this);
+        document.addEventListener("mousedown", this._notifClickOutside);
+    },
+    unmounted() {
+        document.removeEventListener("mousedown", this._notifClickOutside);
     },
     methods: {
         openNotificationDialog() {
-            this.show_dialog.notifications = true;
+            this.show_dialog.notifications = !this.show_dialog.notifications;
+        },
+        closeNotificationPanel() {
+            this.show_dialog.notifications = false;
+        },
+        handleNotificationClickOutside(event) {
+            const panel = this.$refs.notificationPanel;
+            const btn = this.$refs.notificationBtn;
+            if (
+                panel &&
+                !panel.contains(event.target) &&
+                btn &&
+                !btn.contains(event.target)
+            ) {
+                this.show_dialog.notifications = false;
+            }
         },
         markNotificationAsRead(notification) {
-            if (notification.read) {
-                return;
-            }
-
+            if (notification.read) return;
             notification.read = true;
         },
         markAllNotificationsAsRead() {
@@ -210,6 +244,15 @@ export default {
                 summary: "Semua notifikasi dibaca",
                 life: 2500,
             });
+        },
+        notificationIcon(type) {
+            const map = {
+                warning: "mdi:alert-circle",
+                success: "mdi:check-circle",
+                info: "mdi:information",
+                danger: "mdi:alert",
+            };
+            return map[type] || "mdi:bell";
         },
         async fetchUserProfile() {
             try {
@@ -498,23 +541,94 @@ export default {
         <div class="layout-topbar-actions">
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
-                    <button
-                        type="button"
-                        class="layout-topbar-action mr-2 relative flex items-center justify-center"
-                        aria-label="Notifications"
-                        @click="openNotificationDialog"
-                    >
-                        <Icon
-                            icon="mdi:notifications"
-                            class="text-2xl text-primary"
-                        />
-                        <div
-                            v-if="unreadNotificationCount > 0"
-                            class="absolute font-farro -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 text-center font-semibold shadow-sm"
+                    <div class="relative flex items-center">
+                        <button
+                            ref="notificationBtn"
+                            type="button"
+                            class="layout-topbar-action relative flex items-center justify-center"
+                            aria-label="Notifications"
+                            @click="openNotificationDialog"
                         >
-                            {{ notificationBadgeLabel }}
-                        </div>
-                    </button>
+                            <Icon
+                                icon="mdi:bell-outline"
+                                class="text-2xl text-primary"
+                            />
+                            <div
+                                v-if="unreadNotificationCount > 0"
+                                class="absolute font-farro -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 text-center font-semibold shadow-sm"
+                            >
+                                {{ notificationBadgeLabel }}
+                            </div>
+                        </button>
+
+                        <!-- Notification Dropdown Panel -->
+                        <Transition name="notif-drop">
+                            <div
+                                v-if="show_dialog.notifications"
+                                ref="notificationPanel"
+                                class="notif-panel font-farro"
+                            >
+                                <!-- Header -->
+                                <div class="notif-panel-header">
+                                    <div class="notif-panel-header-left">
+                                        <Icon icon="mdi:bell-badge" class="text-xl text-primary" />
+                                        <span class="font-semibold text-sm">Notifikasi</span>
+                                        <span v-if="unreadNotificationCount > 0" class="notif-badge-pill">
+                                            {{ unreadNotificationCount }}
+                                        </span>
+                                    </div>
+                                    <button
+                                        class="notif-close-btn"
+                                        @click="closeNotificationPanel"
+                                        aria-label="Tutup"
+                                    >
+                                        <Icon icon="mdi:close" class="text-base" />
+                                    </button>
+                                </div>
+
+                                <!-- List -->
+                                <div class="notif-panel-body">
+                                    <button
+                                        v-for="(notification, index) in notifications"
+                                        :key="`${notification.title}-${index}`"
+                                        type="button"
+                                        class="notif-item"
+                                        :class="{ 'notif-item--unread': !notification.read }"
+                                        @click="markNotificationAsRead(notification)"
+                                    >
+                                        <span class="notif-icon-wrap" :class="`notif-icon--${notification.type}`">
+                                            <Icon :icon="notificationIcon(notification.type)" class="text-base" />
+                                        </span>
+                                        <div class="notif-content">
+                                            <div class="notif-top-row">
+                                                <span class="notif-title">{{ notification.title }}</span>
+                                                <span class="notif-time">{{ notification.time }}</span>
+                                            </div>
+                                            <p class="notif-message">{{ notification.message }}</p>
+                                        </div>
+                                        <span v-if="!notification.read" class="notif-dot"></span>
+                                    </button>
+
+                                    <div v-if="notifications.length === 0" class="notif-empty">
+                                        <Icon icon="mdi:bell-off-outline" class="text-3xl opacity-40" />
+                                        <span>Tidak ada notifikasi</span>
+                                    </div>
+                                </div>
+
+                                <!-- Footer -->
+                                <div class="notif-panel-footer">
+                                    <button
+                                        class="notif-mark-all-btn"
+                                        :disabled="unreadNotificationCount === 0"
+                                        @click="markAllNotificationsAsRead"
+                                    >
+                                        <Icon icon="mdi:check-all" class="text-base" />
+                                        Tandai semua sudah dibaca
+                                    </button>
+                                </div>
+                            </div>
+                        </Transition>
+                    </div>
                     <div class="layout-topbar-action" @click="dialogProfile()">
                         <div
                             class="photo w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600"
@@ -785,57 +899,9 @@ export default {
         </Tabs>
     </Dialog>
 
-    <Dialog
-        v-model:visible="show_dialog.notifications"
-        header="Notifikasi"
-        :style="{ width: '560px', height: '30rem' }"
-        class="font-farro notification-dialog"
-    >
-        <div class="notification-dialog-body space-y-3 py-2 pr-1">
-            <button
-                v-for="(notification, index) in notifications"
-                :key="`${notification.title}-${index}`"
-                type="button"
-                class="flex w-full items-start gap-3 rounded-xl border border-surface-200 p-3 text-left font-farro transition-colors"
-                :class="[
-                    notification.read ? 'bg-surface-50' : 'bg-primary-50/40',
-                    notification.read
-                        ? 'cursor-default'
-                        : 'cursor-pointer hover:bg-primary-50',
-                ]"
-                @click="markNotificationAsRead(notification)"
-            >
-                <span
-                    class="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                    :class="notification.read ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'"
-                >
-                    <i
-                        :class="
-                            notification.read
-                                ? 'pi pi-check'
-                                : 'pi pi-bell'
-                        "
-                    ></i>
-                </span>
-                <div class="min-w-0 flex-1">
-                    <div class="flex items-center justify-between gap-3">
-                        <h6 class="mb-0 text-sm font-semibold">
-                            {{ notification.title }}
-                        </h6>
-                        <span class="text-[11px] text-surface-500">
-                            {{
-                                notification.read
-                                    ? 'Sudah dibaca'
-                                    : 'Belum dibaca'
-                            }}
-                        </span>
-                    </div>
-                    <p class="mb-0 mt-1 text-sm text-surface-600">
-                        {{ notification.message }}
-                    </p>
-                </div>
-            </button>
+    <!-- Notification Dialog removed — now uses inline dropdown panel -->
 
+<<<<<<< Updated upstream
             <div v-if="notifications.length === 0" class="py-6 text-center text-surface-500">
                 Tidak ada notifikasi.
             </div>
@@ -851,6 +917,8 @@ export default {
             />
         </template>
     </Dialog>
+=======
+>>>>>>> Stashed changes
 </template>
 
 <style lang="scss" scoped>
@@ -861,16 +929,6 @@ export default {
 
 :deep(.p-dialog-content) {
     margin-top: -1.5rem;
-}
-:deep(.notification-dialog .p-dialog-content) {
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-:deep(.notification-dialog-body) {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
 }
 :deep(.p-tab h6) {
     font-weight: 400;
@@ -886,9 +944,8 @@ export default {
     background-repeat: no-repeat;
     background-size: cover;
 }
-input[type=file], /* FF, IE7+, chrome (except button) */
+input[type=file],
 input[type=file]::-webkit-file-upload-button {
-    /* chromes and blink button */
     cursor: pointer;
 }
 @media print {
@@ -896,4 +953,270 @@ input[type=file]::-webkit-file-upload-button {
         display: none !important;
     }
 }
+
+/* ── Notification dropdown panel ── */
+.notif-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: -10px;
+    width: 380px;
+    background: #fff;
+    border: 1px solid #e8eaf0;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    z-index: 9999;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: -6px;
+        right: 22px;
+        width: 12px;
+        height: 12px;
+        background: #fff;
+        border-left: 1px solid #e8eaf0;
+        border-top: 1px solid #e8eaf0;
+        transform: rotate(45deg);
+        border-radius: 2px 0 0 0;
+    }
+}
+
+.notif-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid #f0f1f5;
+    background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+
+    &-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+}
+
+.notif-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.notif-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+
+    &:hover {
+        background: #f3f4f6;
+        color: #111;
+    }
+}
+
+.notif-panel-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    max-height: 340px;
+    padding: 10px 10px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 99px;
+    }
+}
+
+.notif-item {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: default;
+    transition: background 0.15s, border-color 0.15s;
+
+    &--unread {
+        background: #f5f7ff;
+        border-color: #e0e5ff;
+        cursor: pointer;
+
+        &:hover {
+            background: #eef1ff;
+            border-color: #c7d0ff;
+        }
+
+        .notif-title {
+            font-weight: 700;
+        }
+    }
+
+    &:not(.notif-item--unread):hover {
+        background: #f9fafb;
+    }
+}
+
+.notif-icon-wrap {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    margin-top: 2px;
+    font-size: 16px;
+}
+
+.notif-icon--warning {
+    background: #fef3c7;
+    color: #d97706;
+}
+.notif-icon--success {
+    background: #d1fae5;
+    color: #059669;
+}
+.notif-icon--info {
+    background: #dbeafe;
+    color: #2563eb;
+}
+.notif-icon--danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.notif-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notif-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 3px;
+}
+
+.notif-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.notif-time {
+    font-size: 11px;
+    color: #9ca3af;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.notif-message {
+    font-size: 12px;
+    color: #6b7280;
+    margin: 0;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.notif-dot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6366f1;
+    margin-top: 6px;
+}
+
+.notif-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 32px 0;
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.notif-panel-footer {
+    padding: 10px 12px 12px;
+    border-top: 1px solid #f0f1f5;
+}
+
+.notif-mark-all-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #e0e7ff;
+    background: #f5f7ff;
+    color: #4f46e5;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+
+    &:hover:not(:disabled) {
+        background: #e0e7ff;
+        border-color: #c7d2fe;
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+}
+
+/* Dropdown animation */
+.notif-drop-enter-active,
+.notif-drop-leave-active {
+    transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+.notif-drop-enter-from,
+.notif-drop-leave-to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+}
+
 </style>
