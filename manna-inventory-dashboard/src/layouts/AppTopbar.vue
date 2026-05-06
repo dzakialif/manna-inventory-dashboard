@@ -901,24 +901,7 @@ export default {
 
     <!-- Notification Dialog removed — now uses inline dropdown panel -->
 
-<<<<<<< Updated upstream
-            <div v-if="notifications.length === 0" class="py-6 text-center text-surface-500">
-                Tidak ada notifikasi.
-            </div>
-        </div>
 
-        <template #footer>
-            <Button
-                label="Tandai sudah dibaca semua"
-                icon="pi pi-check"
-                :disabled="unreadNotificationCount === 0"
-                @click="markAllNotificationsAsRead"
-                class="w-full !bg-primary hover:!bg-primary-dark mt-5"
-            />
-        </template>
-    </Dialog>
-=======
->>>>>>> Stashed changes
 </template>
 
 <style lang="scss" scoped>
