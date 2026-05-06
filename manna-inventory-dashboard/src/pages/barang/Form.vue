@@ -1,9 +1,9 @@
 <script>
-import Dropdown from "primevue/dropdown";
+import Select from "primevue/select";
 
 export default {
     components: {
-        Dropdown,
+        Select,
     },
     data() {
         return {
@@ -27,7 +27,8 @@ export default {
                 nama: "",
                 kategori: "",
                 ukuran: "",
-                harga: null,
+                harga: "",
+                stok: "",
                 satuan: "",
                 rasa: "",
             };
@@ -58,7 +59,8 @@ export default {
                     nama: draft.nama || "",
                     kategori: draft.kategori || "",
                     ukuran: draft.ukuran || "",
-                    harga: draft.harga ?? null,
+                    harga: draft.harga ?? "",
+                    stok: draft.stok ?? "",
                     satuan: draft.satuan || "",
                     rasa: draft.rasa || "",
                 };
@@ -123,12 +125,25 @@ export default {
             <div class="flex justify-center gap-4 mb-4">
                 <div class="form-group mb-2 w-full">
                     <label class="mb-2 block font-farro">Kategori <span class="text-red-500">*</span></label>
-                    <Dropdown
+                    <Select
                         v-model="form.kategori"
                         :options="kategoriOptions"
-                        class="kategori-dropdown w-full h-12 font-farro"
-                        panelClass="kategori-dropdown-panel"
                         placeholder="Pilih kategori"
+                        class="font-farro w-full"
+                        showClear
+                        :pt="{
+                        root: {
+                            class: 'flex items-center !bg-white !text-black !border !border-gray-300 !rounded-lg !h-12 !w-full focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
+                        },
+                        label: { class: form.kategori ? '!text-black !text-md' : '!text-gray-400 !text-md' },
+                        dropdown: { class: '!text-black !bg-white' },
+                        overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
+                        listContainer: { class: 'bg-white' },
+                        list: { class: '!bg-white' },
+                        option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
+                        optionLabel: { class: '!text-black' },
+                        emptyMessage: { class: '!text-black !bg-white' },
+                        }"
                     />
                 </div>
             </div>
@@ -151,6 +166,18 @@ export default {
                         type="text"
                         class="font-farro h-12 w-full rounded-lg border border-gray-300 px-4 focus:ring-2 focus:ring-primary focus:outline-none"
                         placeholder="Masukkan harga barang..."
+                    />
+                </div>
+            </div>
+
+            <div v-if="!isEditMode" class="flex justify-center gap-4 mb-4">
+                <div class="form-group mb-2 w-full">
+                    <label class="mb-2 block font-farro">Stok <span class="text-red-500">*</span></label>
+                    <input
+                        v-model="form.stok"
+                        type="text"
+                        class="font-farro h-12 w-full rounded-lg border border-gray-300 px-4 focus:ring-2 focus:ring-primary focus:outline-none"
+                        placeholder="Masukkan stok barang..."
                     />
                 </div>
             </div>
@@ -186,7 +213,7 @@ export default {
                 </router-link>
                 <button
                     type="submit"
-                    class="h-12 rounded-lg btn-primary px-5 font-farro text-white hover:bg-primary-dark transition duration-200"
+                    class="h-12 rounded-lg bg-primary px-5 font-farro text-white hover:bg-primary-dark transition duration-200"
                 >
                     Simpan
                 </button>
@@ -197,16 +224,16 @@ export default {
 
 <style lang="scss" scoped>
 :deep(.kategori-dropdown.p-focus) {
-    border-color: var(#037D5B) !important;
-    box-shadow: 0 0 0 1px var(--primary-color) !important;
+    border-color: #037d5b !important;
+    box-shadow: 0 0 0 1px #037d5b !important;
     outline: none !important;
 }
 
 :deep(.kategori-dropdown-panel .p-dropdown-item.p-highlight) {
-    background: var(#F3F5F8) !important;
+    background: #f3f5f8 !important;
 }
 
 :deep(.kategori-dropdown-panel .p-dropdown-item:not(.p-highlight):hover) {
-    background: var(#E9F2EC) !important;
+    background: #e9f2ec !important;
 }
 </style>

@@ -14,12 +14,7 @@ const model = ref([
       ]
     },
     { label: 'Stok Opname', icon: 'mdi:clipboard-list', to:'/stock-opname' },
-    { label: 'Transaksi', icon: 'mdi:receipt-text', 
-    items: [
-      { label: 'Barang Masuk', icon: 'mdi:arrow-collapse-right', to: '/barang-masuk' },
-      { label: 'Barang Keluar', icon: 'mdi:arrow-collapse-left', to: '/barang-keluar' },
-      ]
-    },
+    { label: 'Transaksi', icon: 'mdi:receipt-text', to: '/transaksi'},
     { label: 'Analisis', icon: 'mdi:analytics', items: [
       { label: 'Analisis ABC', icon: 'mdi:chart-pie', to: '/abc-analysis' },
       { label: 'Analisis Persediaan', icon: 'mdi:chart-finance', to: '/stock-analysis' },

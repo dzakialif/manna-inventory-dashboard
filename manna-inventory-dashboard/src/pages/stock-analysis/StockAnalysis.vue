@@ -111,12 +111,10 @@ export default {
                 minimumFractionDigits: 0
             }).format(value);
         },
-        editItem(item) {
-            this.$toast?.add?.({
-                severity: "info",
-                summary: "Edit Mode",
-                detail: `Edit ${item.nama}`,
-                life: 2500,
+        detailData(item) {
+            this.$router.push({
+                name: "stock_analysis_detail",
+                params: { id: item.id },
             });
         },
         confirmDelete(item) {
@@ -333,13 +331,23 @@ export default {
                     <Menu
                         :ref="`menu_${data.id}`"
                         :id="'overlay_menu_' + data.id"
+                        class="font-farro"
                         :popup="true"
+                        :pt="{
+                            root: { class: 'font-farro' },
+                            menu: { class: 'font-farro' },
+                            item: { class: 'font-farro' },
+                            itemContent: { class: 'font-farro text-gray-700 hover:text-gray-700' },
+                            itemLink: { class: 'font-farro text-gray-700 hover:text-gray-700 focus:text-gray-700' },
+                            itemLabel: { class: 'font-farro text-gray-700' },
+                            itemIcon: { class: 'text-gray-700' }
+                        }"
                         :model="[
                             {
                                 label: 'Detail',
                                 icon: 'pi pi-eye',
-                                command: () => viewItem(data),
-                            },
+                                command: () => detailData(data),
+                            }
                         ]"
                     />
                 </template>
