@@ -4,9 +4,11 @@ $borderRadius: 8px;
 $transitionDuration: .2s;
 
 $white: #fff;
-$primaryColor: #1F4E79;
-$darkPrimaryColor: #18436b;
-$linearPrimary: linear-gradient(135deg, #00ADD4 0%, #2B3990 100%);
+
+/* ─── Brand palette (synced with tailwind.config.js) ─── */
+$primaryColor: #0B6434;
+$darkPrimaryColor: #084D27;
+$linearPrimary: linear-gradient(135deg, #0B6434 0%, #037D5B 60%);
 $linearSecondary: linear-gradient(135deg, #ABDCFF 0%, #0396FF 100%);
 $linearRed: linear-gradient(135deg, #E19884 0%, #BE1E2D 100%);
 $linearGreen: linear-gradient(135deg, #9CB657 0%, #2B8A47 100%);
