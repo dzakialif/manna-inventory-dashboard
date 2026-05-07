@@ -1,5 +1,10 @@
 <script>
+import Select from "primevue/select";
+
 export default {
+    components: {
+        Select,
+    },
     data() {
         return {
             data: [
@@ -7,8 +12,7 @@ export default {
                     id: 1,
                     tanggal: "2026-04-03",
                     no_invoice: "IN-INV-202604-0001",
-                    tipe: "IN",
-                    total_item: 12,
+                    jenis: "Masuk",
                     total_transaksi: 18750000,
                     dokumen: "Faktur Penjualan",
                     user: "Rina - Admin Gudang",
@@ -17,8 +21,7 @@ export default {
                     id: 2,
                     tanggal: "2026-04-05",
                     no_invoice: "IN-INV-202604-0002",
-                    tipe: "IN",
-                    total_item: 7,
+                    jenis: "Masuk",
                     total_transaksi: 9550000,
                     dokumen: "Surat Jalan",
                     user: "Dimas - Kasir",
@@ -27,8 +30,7 @@ export default {
                     id: 3,
                     tanggal: "2026-04-07",
                     no_invoice: "IN-INV-202604-0003",
-                    tipe: "IN",
-                    total_item: 20,
+                    jenis: "Masuk",
                     total_transaksi: 14600000,
                     dokumen: "Mutasi Stok",
                     user: "Sari - Supervisor",
@@ -37,8 +39,7 @@ export default {
                     id: 4,
                     tanggal: "2026-04-09",
                     no_invoice: "IN-INV-202604-0004",
-                    tipe: "IN",
-                    total_item: 5,
+                    jenis: "Masuk",
                     total_transaksi: 11250000,
                     dokumen: "Faktur Penjualan",
                     user: "Bayu - Kasir",
@@ -47,8 +48,7 @@ export default {
                     id: 5,
                     tanggal: "2026-04-12",
                     no_invoice: "IN-INV-202604-0005",
-                    tipe: "IN",
-                    total_item: 2,
+                    jenis: "Masuk",
                     total_transaksi: 980000,
                     dokumen: "Nota Retur",
                     user: "Rina - Admin Gudang",
@@ -57,8 +57,7 @@ export default {
                     id: 6,
                     tanggal: "2026-04-15",
                     no_invoice: "IN-INV-202604-0006",
-                    tipe: "IN",
-                    total_item: 18,
+                    jenis: "Masuk",
                     total_transaksi: 22100000,
                     dokumen: "Surat Jalan",
                     user: "Dimas - Kasir",
@@ -67,8 +66,7 @@ export default {
                     id: 7,
                     tanggal: "2026-04-18",
                     no_invoice: "IN-INV-202604-0007",
-                    tipe: "IN",
-                    total_item: 9,
+                    jenis: "Masuk",
                     total_transaksi: 7340000,
                     dokumen: "Mutasi Stok",
                     user: "Sari - Supervisor",
@@ -77,19 +75,18 @@ export default {
                     id: 8,
                     tanggal: "2026-04-22",
                     no_invoice: "IN-INV-202604-0008",
-                    tipe: "IN",
-                    total_item: 4,
+                    jenis: "Masuk",
                     total_transaksi: 12800000,
                     dokumen: "Faktur Penjualan",
                     user: "Bayu - Kasir",
                 }
+
             ],
             loading: false,
             filters: {
                 tanggal: { value: null, matchMode: "contains" },
                 no_invoice: { value: null, matchMode: "contains" },
-                tipe: { value: null, matchMode: "contains" },
-                total_item: { value: null, matchMode: "contains" },
+                jenis: { value: null, matchMode: "contains" },
                 total_transaksi: { value: null, matchMode: "contains" },
                 dokumen: { value: null, matchMode: "contains" },
                 user: { value: null, matchMode: "contains" }
@@ -109,7 +106,12 @@ export default {
                 }
             },
             showDeleteDialog: false,
-            tempData: null
+            tempData: null,
+            jenisOptions: ['Masuk', 'Keluar', 'Opname'],
+            showImportDialog: false,
+            importFile: null,
+            importJenis: null,
+            isDragOver: false
         };
     },
     methods: {
@@ -121,11 +123,10 @@ export default {
             }).format(value);
         },
         editItem(item) {
-            this.$toast?.add?.({
-                severity: "info",
-                summary: "Edit Mode",
-                detail: `Edit ${item.no_invoice}`,
-                life: 2500,
+            sessionStorage.setItem('transaksi_edit_draft', JSON.stringify(item));
+            this.$router.push({
+                name: 'edit_transaksi',
+                params: { id: item.id },
             });
         },
         confirmDelete(item) {
@@ -146,6 +147,39 @@ export default {
                 life: 2500,
             });
         },
+        viewDetail(item) {
+            this.$router.push({
+                name: 'detail_transaksi',
+                params: { id: item.id },
+            });
+        },
+        handleFileSelect(event) {
+            const file = event.target?.files?.[0] || event.dataTransfer?.files?.[0];
+            if (file) this.importFile = file;
+            this.isDragOver = false;
+        },
+        clearImportFile() {
+            this.importFile = null;
+            if (this.$refs.fileInput) this.$refs.fileInput.value = '';
+        },
+        formatFileSize(bytes) {
+            if (!bytes) return '0 B';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        },
+        doImport() {
+            if (!this.importFile) return;
+            this.$toast?.add?.({
+                severity: 'success',
+                summary: 'Berhasil',
+                detail: `File "${this.importFile.name}"${this.importJenis ? ' ('+this.importJenis+')' : ''} berhasil diimport`,
+                life: 3000,
+            });
+            this.showImportDialog = false;
+            this.importJenis = null;
+            this.clearImportFile();
+        },
         toggle(event, itemId) {
             this.$refs[`menu_${itemId}`]?.toggle?.(event);
         }
@@ -157,15 +191,16 @@ export default {
     <div class="card">
         <div class="flex justify-end gap-4 mb-6">
             <button
-                class="inline-flex items-center font-farro rounded-lg btn-primary text-sm text-white hover:bg-primary-dark transition duration-200 p-4"
+                class="inline-flex items-center font-farro rounded-lg bg-primary text-sm text-white hover:bg-primary-dark transition duration-200 p-4"
+                @click="showImportDialog = true"
             >
                 <Icon icon="mdi:download-outline" class="text-xl mr-2"></Icon> Import File
             </button>
-            <button
-                class="inline-flex items-center font-farro rounded-lg btn-primary text-sm text-white hover:bg-primary-dark transition duration-200 p-4"
+            <router-link to="/transaksi/create"
+                class="inline-flex items-center font-farro rounded-lg bg-primary text-sm text-white hover:bg-primary-dark transition duration-200 p-4"
             >
                 <Icon icon="mdi:plus" class="text-xl mr-2"></Icon> Tambah Transaksi
-            </button>
+            </router-link>
         </div>
 
         <DataTable
@@ -238,36 +273,36 @@ export default {
             <Column
                 :pt="columnPt"
                 class="font-farro text-md"
-                field="tipe"
-                header="Tipe"
+                field="jenis"
+                header="Jenis Transaksi"
                 sortable
                 filter
                 :showFilterMenu="false"
-                filterPlaceholder="Cari tipe..."
-                style="min-width: 6rem"
-            >
-                <template #body="{ data }">{{ data.tipe }}</template>
-            </Column>
-
-            <Column
-                :pt="columnPt"
-                class="font-farro text-md"
-                field="total_item"
-                header="Total Item"
-                sortable
-                filter
-                :showFilterMenu="false"
-                filterPlaceholder="Cari total item..."
+                filterPlaceholder="Cari jenis..."
                 style="min-width: 10rem"
             >
-                <template #body="{ data }">{{ data.total_item }}</template>
+                <template class #body="{ data }">{{ data.jenis }}</template>
                 <template #filter="{ filterModel, filterCallback }">
-                    <input
+                    <Select
                         v-model="filterModel.value"
-                        type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Cari total item..."
-                        @input="filterCallback()"
+                        :options="jenisOptions"
+                        @change="filterCallback()"
+                        placeholder="Pilih jenis"
+                        class="font-farro"
+                        showClear
+                        :pt="{
+                        root: {
+                            class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
+                        },
+                        label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
+                        dropdown: { class: '!text-gray-400 !bg-white' },
+                        overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
+                        listContainer: { class: 'bg-white' },
+                        list: { class: '!bg-white' },
+                        option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
+                        optionLabel: { class: '!text-black' },
+                        emptyMessage: { class: '!text-black !bg-white' },
+                        }"
                     />
                 </template>
             </Column>
@@ -352,22 +387,32 @@ export default {
                     </button>
 
                     <Menu
-                        :ref="`menu_${data.id}`"
-                        :id="'overlay_menu_' + data.id"
-                        :popup="true"
-                        :model="[
-                            {
-                                label: 'Edit',
-                                icon: 'pi pi-pencil',
-                                command: () => editItem(data),
-                            },
-                            {
-                                label: 'Delete',
-                                icon: 'pi pi-trash',
-                                command: () => confirmDelete(data),
-                            }
-                        ]"
-                    />
+                    :ref="`menu_${data.id}`"
+                    :id="'overlay_menu_' + data.id"
+                    class="font-farro"
+                    :popup="true"
+                    :pt="{
+                    root: { class: 'font-farro' },
+                    menu: { class: 'font-farro' },
+                    item: { class: 'font-farro' },
+                    itemContent: { class: 'font-farro text-gray-700 hover:text-gray-700' },
+                    itemLink: { class: 'font-farro text-gray-700 hover:text-gray-700 focus:text-gray-700' },
+                    itemLabel: { class: 'font-farro text-gray-700' },
+                    itemIcon: { class: 'text-gray-700' },
+                    }"
+                    :model="[
+                    {
+                        label: 'Edit',
+                        icon: 'pi pi-pencil',
+                        command: () => editItem(data),
+                    },
+                    {
+                        label: 'Detail',
+                        icon: 'pi pi-eye',
+                        command: () => viewDetail(data),
+                    },
+                    ]"
+                />
                 </template>
             </Column>
         </DataTable>
@@ -395,6 +440,112 @@ export default {
                 :disabled="loading"
             >
                 <i class="pi pi-trash mr-2"></i>Hapus
+            </button>
+        </div>
+    </Dialog>
+
+    <!-- ── Import File Dialog ── -->
+    <Dialog
+        v-model:visible="showImportDialog"
+        header="Import File Transaksi"
+        :style="{ width: '32rem' }"
+        :modal="true"
+        @hide="clearImportFile"
+    >
+        <!-- Jenis Transaksi -->
+        <div class="mb-4">
+            <label class="mb-2 block font-farro text-sm font-medium text-gray-700">
+                Jenis Transaksi <span class="text-red-500">*</span>
+            </label>
+            <Select
+                v-model="importJenis"
+                :options="jenisOptions"
+                placeholder="Pilih jenis transaksi"
+                class="font-farro w-full"
+                showClear
+                :pt="{
+                root: {
+                    class: 'flex items-center !bg-white !text-black !border !border-gray-300 !rounded-lg !h-12 !w-full focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
+                },
+                label: { class: importJenis ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
+                dropdown: { class: '!text-gray-500 !bg-white' },
+                overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
+                listContainer: { class: 'bg-white' },
+                list: { class: '!bg-white' },
+                option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
+                optionLabel: { class: '!text-black' },
+                emptyMessage: { class: '!text-black !bg-white' },
+                }"
+            />
+        </div>
+
+        <!-- Drop Zone -->
+        <div
+            class="mb-5 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed transition-colors duration-200 p-8 cursor-pointer"
+            :class="isDragOver ? 'border-primary bg-green-50' : 'border-gray-300 bg-gray-50 hover:border-primary hover:bg-green-50'"
+            @dragover.prevent="isDragOver = true"
+            @dragleave.prevent="isDragOver = false"
+            @drop.prevent="handleFileSelect"
+            @click="$refs.fileInput.click()"
+        >
+            <Icon icon="mdi:cloud-upload-outline" class="text-5xl" :class="isDragOver ? 'text-primary' : 'text-gray-400'" />
+            <div class="text-center">
+                <p class="font-farro font-semibold text-sm text-gray-700">Klik atau seret file ke sini</p>
+                <p class="font-farro text-xs text-gray-400 mt-1">Format: .xlsx, .xls, .csv, .pdf (maks. 10 MB)</p>
+            </div>
+            <input
+                ref="fileInput"
+                type="file"
+                accept=".xlsx,.xls,.csv,.pdf,application/pdf"
+                class="hidden"
+                @change="handleFileSelect"
+            />
+        </div>
+
+        <!-- File Overview -->
+        <div v-if="importFile" class="mb-5 rounded-xl border border-gray-200 bg-white p-4 flex items-center gap-4">
+            <div
+                class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+                :class="importFile.type === 'application/pdf' ? 'bg-red-100' : 'bg-green-100'"
+            >
+                <Icon
+                    :icon="importFile.type === 'application/pdf' ? 'mdi:file-pdf-box' : 'mdi:file-excel-outline'"
+                    class="text-xl"
+                    :class="importFile.type === 'application/pdf' ? 'text-red-500' : 'text-primary'"
+                />
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="font-farro text-sm font-semibold text-gray-800 truncate">{{ importFile.name }}</p>
+                <p class="font-farro text-xs text-gray-400 mt-0.5">
+                    {{ formatFileSize(importFile.size) }} &nbsp;·&nbsp;
+                    {{ importFile.type === 'application/pdf' ? 'PDF Document' : 'Spreadsheet' }}
+                </p>
+            </div>
+            <button
+                type="button"
+                class="flex-shrink-0 w-8 h-8 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition"
+                @click.stop="clearImportFile"
+                title="Hapus file"
+            >
+                <i class="pi pi-times text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-3">
+            <Button
+                type="button"
+                label="Batal"
+                severity="secondary"
+                @click="showImportDialog = false; clearImportFile()"
+            />
+            <button
+                type="button"
+                class="h-10 inline-flex items-center gap-2 rounded-lg bg-primary px-5 font-farro text-sm text-white hover:bg-primary-dark transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                :disabled="!importFile"
+                @click="doImport"
+            >
+                <i class="pi pi-upload text-xs"></i> Import
             </button>
         </div>
     </Dialog>

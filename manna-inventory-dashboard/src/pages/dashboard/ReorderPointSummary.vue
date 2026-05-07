@@ -33,6 +33,21 @@ export default {
                     currentStock: 10,
                     status: "Waspada",
                 },
+                {
+                    name: "Susu UHT Coklat 1L",
+                    currentStock: 10,
+                    status: "Waspada",
+                },
+                {
+                    name: "Susu UHT Coklat 1L",
+                    currentStock: 10,
+                    status: "Waspada",
+                },
+                {
+                    name: "Susu UHT Coklat 1L",
+                    currentStock: 10,
+                    status: "Waspada",
+                },
             ],
         };
     },
@@ -40,14 +55,13 @@ export default {
 </script>
 
 <template>
-    <div class="card bg-white">
+    <div class="card bg-white shadow-md">
         <div class="font-bold font-farro text-xl mb-4 border-b border-gray-300 pb-4">Reorder Point Summary</div>
         <DataTable
             class="rop-datatable"
             :value="products"
-            :rows="5"
+            :rows="7"
             :paginator="true"
-            responsiveLayout="scroll"
             :pt="{
                 root: { class: 'font-farro' },
                 tableContainer: { class: '!bg-white !rounded-lg ' },

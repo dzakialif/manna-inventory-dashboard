@@ -36,9 +36,9 @@ export default {
         },
         jenisBadgeClass() {
             const map = {
-                Masuk: "bg-primary-50 text-primary border border-primary-200",
-                Keluar: "bg-danger-50 text-danger border border-danger-200",
-                Opname: "bg-info-50 text-info border border-info-200",
+                Masuk: "bg-green-100 text-green-700 border border-green-200",
+                Keluar: "bg-red-100 text-red-700 border border-red-200",
+                Opname: "bg-blue-100 text-blue-700 border border-blue-200",
             };
             return map[this.transaksi?.jenis] ?? "bg-gray-100 text-gray-600";
         },
@@ -148,7 +148,7 @@ export default {
                     <div class="space-y-3">
                         <div class="flex justify-between items-center py-2 border-b border-gray-100">
                             <span class="font-farro text-sm text-gray-500">No. Invoice</span>
-                            <span class="font-farro text-sm font-bold text-gray-800">{{ transaksi.no_invoice }}</span>
+                            <span class="font-farro text-sm font-semibold text-gray-800">{{ transaksi.no_invoice }}</span>
                         </div>
                         <div class="flex justify-between items-center py-2 border-b border-gray-100">
                             <span class="font-farro text-sm text-gray-500">Tanggal</span>
