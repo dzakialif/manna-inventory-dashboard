@@ -2,6 +2,11 @@
 export default {
     data() {
         return {
+            barang: {
+                kode_barang: "BRG001",
+                nama: "Moiaa Swiss Choco 1000 grm",
+                kategori: "Kategori A"
+            },
             data: [
                 {
                     id: 1,
@@ -130,12 +135,18 @@ export default {
         };
     },
     computed: {
-        totalBarang() {
-            return this.data.length;
+        rataStok() {
+            return Math.round(this.data.reduce((total, item) => total + item.stok_aktual, 0) / this.data.length);
         },
-        totalNilai() {
-            return this.data.reduce((total, item) => total + item.stok_aktual, 0);
+        rataForecast() {
+            return Math.round(this.data.reduce((total, item) => total + item.forecast, 0) / this.data.length);
         },
+        rataSafetyStock() {
+            return Math.round(this.data.reduce((total, item) => total + item.safety_stock, 0) / this.data.length);
+        },
+        rataReorderPoint() {
+            return Math.round(this.data.reduce((total, item) => total + item.reorder_point, 0) / this.data.length);
+        }
     },
     methods: {
         formatNumber(value) {
@@ -154,16 +165,68 @@ export default {
 
 <template>
     <div class="card">
-        <div class="flex items-center justify-between mb-6 gap-2">
-            <router-link to="/stock-analysis"
-                class="h-12 inline-flex items-center rounded-lg p-2 font-farro text-gray-600 hover:bg-gray-200 hover:text-gray-700 transition duration-200 flex-shrink-0"
+        <!-- Header -->
+        <div class="flex items-center gap-3 mb-6">
+            <router-link
+                to="/stock-analysis"
+                class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 transition"
             >
-                <Icon icon="mdi:arrow-left" class="text-[2rem] text-center"></Icon>
+                <i class="pi pi-arrow-left text-sm"></i>
             </router-link>
-            <div class="w-[28rem]">
-                <div class="flex justify-around rounded-2xl border-2 border-primary bg-primary-50 p-4 shadow-sm">
-                    <div class="font-farro text-md text-gray-500">Total Barang: <span class="font-farro text-md font-bold text-black">{{ totalBarang }}</span></div>
-                    <div class="font-farro text-md text-gray-500">Total Nilai: <span class="font-farro text-md font-bold text-black">{{ formatCurrency(totalNilai) }}</span></div>
+            <div>
+                <h6 class="text-xl font-farro font-bold leading-tight">Detail Analisis Stok</h6>
+                <span class="text-sm font-farro text-gray-400">{{ barang.kode_barang }} - {{ barang.nama }}</span>
+            </div>
+        </div>
+
+        <!-- ── Section 1: Informasi & Ringkasan ── -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+
+            <!-- Informasi Barang -->
+            <div class="rounded-xl border border-gray-200 bg-gray-50 p-5">
+                <h6 class="font-farro font-semibold text-gray-700 mb-4 text-base">
+                    <i class="pi pi-box mr-2 text-primary"></i>Informasi Barang
+                </h6>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="font-farro text-sm text-gray-500">Kode Barang</span>
+                        <span class="font-farro text-sm font-bold text-gray-800">{{ barang.kode_barang }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="font-farro text-sm text-gray-500">Nama Barang</span>
+                        <span class="font-farro text-sm text-gray-800">{{ barang.nama }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2">
+                        <span class="font-farro text-sm text-gray-500">Kategori ABC</span>
+                        <span class="font-farro text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                            {{ barang.kategori }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ringkasan Analisis -->
+            <div class="rounded-xl border border-gray-200 bg-gray-50 p-5">
+                <h6 class="font-farro font-semibold text-gray-700 mb-4 text-base">
+                    <i class="pi pi-chart-line mr-2 text-primary"></i>Ringkasan Analisis (Rata-rata)
+                </h6>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="font-farro text-sm text-gray-500">Stok Aktual</span>
+                        <span class="font-farro text-sm font-semibold text-gray-800">{{ formatNumber(rataStok) }} unit</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="font-farro text-sm text-gray-500">Forecast / Peramalan</span>
+                        <span class="font-farro text-sm font-semibold text-gray-800">{{ formatNumber(rataForecast) }} unit</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="font-farro text-sm text-gray-500">Safety Stock</span>
+                        <span class="font-farro text-sm font-semibold text-gray-800">{{ formatNumber(rataSafetyStock) }} unit</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2">
+                        <span class="font-farro text-sm text-gray-500">Reorder Point</span>
+                        <span class="font-farro text-sm font-bold text-primary">{{ formatNumber(rataReorderPoint) }} unit</span>
+                    </div>
                 </div>
             </div>
         </div>
