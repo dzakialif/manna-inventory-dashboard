@@ -1,5 +1,6 @@
 <script>
 import Select from 'primevue/select';
+import { api } from '@/utils/api';
 
 export default {
   components: {
@@ -7,105 +8,13 @@ export default {
   },
   data() {
     return {
-      data: [
-        {
-          id: 1,
-          kode_barang: 'BRG001',
-          nama: 'Moiaa Swiss Choco 1000grm',
-          kategori: 'Moiaa',
-          ukuran: '1000',
-          harga: 15000000,
-          stok: 5,
-          satuan: 'PCS',
-          rasa: 'Coklat',
-          terakhir_update: '2024-01-15',
-        },
-        {
-          id: 2,
-          kode_barang: 'BRG002',
-          nama: 'Moiaa Mango 1000grm',
-          kategori: 'Moiaa',
-          ukuran: '1000',
-          harga: 800000,
-          stok: 20,
-          satuan: 'PCS',
-          rasa: 'Mangga',
-          terakhir_update: '2024-01-10',
-        },
-        {
-          id: 3,
-          kode_barang: 'BRG003',
-          nama: 'SBC Cappucino Original 1000grm',
-          kategori: 'SBC',
-          ukuran: '1000',
-          harga: 1200000,
-          stok: 15,
-          satuan: 'PCS',
-          rasa: 'Cappucino',
-          terakhir_update: '2024-01-20',
-        },
-        {
-          id: 4,
-          kode_barang: 'BRG004',
-          nama: 'Moiaa Strawberry 1000grm',
-          kategori: 'Moiaa',
-          ukuran: '1000',
-          harga: 2500000,
-          stok: 8,
-          satuan: 'PCS',
-          rasa: 'Strawberry',
-          terakhir_update: '2024-02-01',
-        },
-        {
-          id: 5,
-          kode_barang: 'BRG005',
-          nama: 'SBC Swiss Choco 1000grm',
-          kategori: 'SBC',
-          ukuran: '1000',
-          harga: 1500000,
-          stok: 12,
-          satuan: 'PCS',
-          rasa: 'Coklat',
-          terakhir_update: '2024-02-05',
-        },
-        {
-          id: 6,
-          kode_barang: 'BRG006',
-          nama: 'Moiaa Mango 200grm',
-          kategori: 'Moiaa',
-          ukuran: '200',
-          harga: 750000,
-          stok: 25,
-          satuan: 'PCS',
-          rasa: 'Mangga',
-          terakhir_update: '2024-02-10',
-        },
-        {
-          id: 7,
-          kode_barang: 'BRG007',
-          nama: 'SBC Green Tea 500grm',
-          kategori: 'SBC',
-          ukuran: '500',
-          harga: 1800000,
-          stok: 10,
-          satuan: 'PCS',
-          rasa: 'Green Tea',
-          terakhir_update: '2024-02-15',
-        },
-        {
-          id: 8,
-          kode_barang: 'BRG008',
-          nama: 'Topping Cheese Cream 500grm',
-          kategori: 'Topping',
-          ukuran: '500',
-          harga: 4500000,
-          stok: 3,
-          satuan: 'PCS',
-          rasa: 'Keju',
-          terakhir_update: '2024-02-20',
-        },
-      ],
+      data: [],
       loading: false,
+      // Pagination
+      currentPage: 0,
+      totalPages: 0,
+      pageSize: 10,
+      totalItems: 0,
       filters: {
         kode_barang: { value: null, matchMode: 'contains' },
         nama: { value: null, matchMode: 'contains' },
@@ -117,6 +26,8 @@ export default {
         rasa: { value: null, matchMode: 'contains' },
         terakhir_update: { value: null, matchMode: 'contains' },
       },
+      sortField: null,
+      sortOrder: null,
       columnPt: {
         headerCell: {
           class: 'font-farro',
@@ -138,7 +49,106 @@ export default {
       tempData: null,
     };
   },
+  mounted() {
+    this.fetchProducts();
+  },
   methods: {
+    async fetchProducts(page = 0) {
+      this.loading = true;
+      try {
+        let queryParams = `page=${page}&size=${this.pageSize}`;
+
+        const f = this.filters;
+        if (f.nama.value !== null && f.nama.value !== '') queryParams += `&name=${encodeURIComponent(f.nama.value)}`;
+        if (f.kategori.value !== null && f.kategori.value !== '') queryParams += `&categoryName=${encodeURIComponent(f.kategori.value)}`;
+        if (f.ukuran.value !== null && f.ukuran.value !== '') queryParams += `&sizes=${encodeURIComponent(f.ukuran.value)}`;
+        if (f.harga.value !== null && f.harga.value !== '') queryParams += `&price=${encodeURIComponent(f.harga.value)}`;
+        if (f.stok.value !== null && f.stok.value !== '') queryParams += `&stock=${encodeURIComponent(f.stok.value)}`;
+        if (f.satuan.value !== null && f.satuan.value !== '') queryParams += `&unit=${encodeURIComponent(f.satuan.value)}`;
+        if (f.rasa.value !== null && f.rasa.value !== '') queryParams += `&flavors=${encodeURIComponent(f.rasa.value)}`;
+        if (f.kode_barang.value !== null && f.kode_barang.value !== '') queryParams += `&productCode=${encodeURIComponent(f.kode_barang.value)}`;
+
+        if (this.sortField && this.sortOrder !== null) {
+          let mappedSortField = this.sortField;
+          if (this.sortField === 'nama') mappedSortField = 'name';
+          else if (this.sortField === 'kategori') mappedSortField = 'categoryName';
+          else if (this.sortField === 'ukuran') mappedSortField = 'sizes';
+          else if (this.sortField === 'harga') mappedSortField = 'price';
+          else if (this.sortField === 'stok') mappedSortField = 'stock';
+          else if (this.sortField === 'satuan') mappedSortField = 'unit';
+          else if (this.sortField === 'rasa') mappedSortField = 'flavors';
+          else if (this.sortField === 'kode_barang') mappedSortField = 'productCode';
+
+          queryParams += `&sortBy=${mappedSortField}&sortDirection=${this.sortOrder === 1 ? 'asc' : 'desc'}`;
+        }
+
+        const response = await api.get(`/products?${queryParams}`);
+        const result = response.data;
+
+        // Map API response fields ke field lokal yang digunakan tabel
+        this.data = (result.data || []).map((item) => ({
+          productId: item.productId,
+          categoryId: item.categoryId,
+          kode_barang: item.productCode,
+          nama: item.name,
+          ukuran: item.sizes,
+          harga: item.price,
+          stok: item.stock?.stock ?? 0,
+          stockStatus: item.stock?.status || '-',
+          satuan: item.unit,
+          rasa: item.flavors,
+          terakhir_update: this.formatDate(item.stock?.lastUpdated),
+          // Simpan data mentah untuk keperluan edit
+          _raw: item,
+        }));
+
+        // Handle pagination info
+        if (result.pagging) {
+          this.currentPage = result.pagging.currentPage;
+          this.totalPages = result.pagging.totalPage;
+          this.pageSize = result.pagging.size;
+          // Fallback if totalItems is null, estimate from totalPage * size
+          this.totalItems = result.pagging.totalItems || (result.pagging.totalPage * result.pagging.size);
+        }
+      } catch (error) {
+        console.error('Gagal memuat data produk:', error);
+        this.$toast?.add?.({
+          severity: 'error',
+          summary: 'Gagal',
+          detail: error.message || 'Gagal memuat data barang',
+          life: 3000,
+        });
+      } finally {
+        this.loading = false;
+      }
+    },
+    onPage(event) {
+      // event.page is the new page index (0-based)
+      this.fetchProducts(event.page);
+    },
+    onSort(event) {
+      this.sortField = event.sortField;
+      this.sortOrder = event.sortOrder;
+      this.fetchProducts(0); // Reset ke halaman pertama saat di-sort
+    },
+    onFilter(event) {
+      this.fetchProducts(0); // Reset ke halaman pertama saat filter berubah
+    },
+    formatDate(dateString) {
+      if (!dateString) return '-';
+      try {
+        const date = new Date(dateString);
+        return new Intl.DateTimeFormat('id-ID', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }).format(date);
+      } catch {
+        return dateString;
+      }
+    },
     formatCurrency(value) {
       return new Intl.NumberFormat('id-ID', {
         style: 'currency',
@@ -147,10 +157,11 @@ export default {
       }).format(value);
     },
     editItem(item) {
-      sessionStorage.setItem('barang_edit_draft', JSON.stringify(item));
+      // Kirim data mentah API ke halaman edit
+      sessionStorage.setItem('barang_edit_draft', JSON.stringify(item._raw || item));
       this.$router.push({
         name: 'edit_barang',
-        params: { id: item.id },
+        params: { id: item.productId },
       });
     },
     confirmDelete(item) {
@@ -160,7 +171,7 @@ export default {
     deleteItem() {
       if (!this.tempData) return;
 
-      this.data = this.data.filter((item) => item.id !== this.tempData.id);
+      this.data = this.data.filter((item) => item.productId !== this.tempData.productId);
       this.showDeleteDialog = false;
       this.tempData = null;
 
@@ -192,11 +203,17 @@ export default {
     <DataTable
       class="barang-datatable font-farro text-sm"
       :value="data"
+      lazy
+      removableSort
+      :totalRecords="totalItems"
+      @page="onPage"
+      @sort="onSort"
+      @filter="onFilter"
       v-model:filters="filters"
       filterDisplay="row"
       :paginator="true"
-      :rows="10"
-      dataKey="id"
+      :rows="pageSize"
+      dataKey="productId"
       :loading="loading"
       paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
       currentPageReportTemplate="Menampilkan {first} ke {last} dari {totalRecords} total data"
@@ -228,6 +245,29 @@ export default {
             type="text"
             class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="Cari kode barang..."
+            @input="filterCallback()"
+          />
+        </template>
+      </Column>
+
+      <Column
+        :pt="columnPt"
+        class="font-farro text-md"
+        field="nama"
+        header="Nama Barang"
+        sortable
+        filter
+        :showFilterMenu="false"
+        filterPlaceholder="Cari nama barang..."
+        style="min-width: 14rem"
+      >
+        <template #body="{ data }">{{ data.nama }}</template>
+        <template #filter="{ filterModel, filterCallback }">
+          <input
+            v-model="filterModel.value"
+            type="text"
+            class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="Cari nama barang..."
             @input="filterCallback()"
           />
         </template>
@@ -440,13 +480,13 @@ export default {
 
       <Column :pt="columnPt" class="font-farro text-md" header="Aksi" style="min-width: 10rem">
         <template #body="{ data }">
-          <button type="button" class="block rounded-lg py-1 px-2 bg-white border border-gray-300 text-gray-500 text-sm hover:bg-gray-300" @click="toggle($event, data.id)">
+          <button type="button" class="block rounded-lg py-1 px-2 bg-white border border-gray-300 text-gray-500 text-sm hover:bg-gray-300" @click="toggle($event, data.productId)">
             <i class="pi pi-ellipsis-h"></i>
           </button>
 
           <Menu
-            :ref="`menu_${data.id}`"
-            :id="'overlay_menu_' + data.id"
+            :ref="`menu_${data.productId}`"
+            :id="'overlay_menu_' + data.productId"
             class="font-farro"
             :popup="true"
             :pt="{

@@ -1,5 +1,6 @@
 <script>
 import Select from "primevue/select";
+import { api } from "@/utils/api";
 
 export default {
     components: {
@@ -8,8 +9,9 @@ export default {
     data() {
         return {
             form: this.getDefaultForm(),
-            kategoriOptions: ["Moiaa", "SBC", "Topping"],
+            kategoriOptions: [],
             satuanOptions: ["PCS", "Pack", "Box"],
+            submitting: false,
         };
     },
     computed: {
@@ -17,8 +19,9 @@ export default {
             return this.$route?.name === "edit_barang";
         },
     },
-    mounted() {
+    async mounted() {
         this.initializeForm();
+        await this.fetchCategories();
     },
     methods: {
         getDefaultForm() {
@@ -73,21 +76,69 @@ export default {
                 });
             }
         },
-        doSubmit() {
-            this.$toast?.add?.({
-                severity: "success",
-                summary: "Berhasil",
-                detail: this.isEditMode
-                    ? `Perubahan barang ${this.form.kode_barang || this.form.nama || ""} berhasil disimpan`
-                    : `Data barang ${this.form.kode_barang || this.form.nama || "baru"} siap disimpan`,
-                life: 3000,
-            });
+        async fetchCategories() {
+            try {
+                const response = await api.get('/categories/');
+                // Simpan hasil ke kategoriOptions, kita butuh name dan categoryId
+                this.kategoriOptions = response.data?.data || [];
+            } catch (error) {
+                console.error("Gagal memuat kategori", error);
+            }
+        },
+        async doSubmit() {
+            if (this.submitting) return;
 
-            if (this.isEditMode) {
-                sessionStorage.removeItem("barang_edit_draft");
+            // Validasi sederhana
+            if (!this.form.kode_barang || !this.form.nama || !this.form.kategori) {
+                this.$toast?.add?.({ severity: 'warn', summary: 'Peringatan', detail: 'Harap lengkapi field wajib!', life: 3000 });
+                return;
             }
 
-            this.$router.push({ name: "barang" });
+            this.submitting = true;
+            try {
+                const payload = {
+                    categoryId: this.form.kategori, // form.kategori menyimpan categoryId
+                    productCode: this.form.kode_barang,
+                    name: this.form.nama,
+                    unit: this.form.satuan,
+                    sizes: this.form.ukuran,
+                    flavors: this.form.rasa,
+                    price: Number(this.form.harga) || 0,
+                    initialStock: Number(this.form.stok) || 0
+                };
+
+                if (!this.isEditMode) {
+                    await api.post('/products', payload);
+                    this.$toast?.add?.({
+                        severity: "success",
+                        summary: "Berhasil",
+                        detail: `Barang ${this.form.nama} berhasil ditambahkan`,
+                        life: 3000,
+                    });
+                } else {
+                    // Logika edit akan ditambahkan di request selanjutnya jika dibutuhkan
+                    // Untuk saat ini hanya mengsimulasikan success untuk edit
+                    this.$toast?.add?.({
+                        severity: "success",
+                        summary: "Berhasil",
+                        detail: `Perubahan barang ${this.form.nama} berhasil disimpan`,
+                        life: 3000,
+                    });
+                    sessionStorage.removeItem("barang_edit_draft");
+                }
+                
+                this.$router.push({ name: "barang" });
+            } catch (error) {
+                console.error("Gagal menyimpan barang", error);
+                this.$toast?.add?.({
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal menyimpan barang",
+                    life: 3000,
+                });
+            } finally {
+                this.submitting = false;
+            }
         },
     },
 };
@@ -128,6 +179,8 @@ export default {
                     <Select
                         v-model="form.kategori"
                         :options="kategoriOptions"
+                        optionLabel="name"
+                        optionValue="categoryId"
                         placeholder="Pilih kategori"
                         class="font-farro w-full"
                         showClear
@@ -213,9 +266,11 @@ export default {
                 </router-link>
                 <button
                     type="submit"
-                    class="h-12 rounded-lg bg-primary px-5 font-farro text-white hover:bg-primary-dark transition duration-200"
+                    class="h-12 flex items-center justify-center rounded-lg bg-primary px-5 font-farro text-white hover:bg-primary-dark transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="submitting"
                 >
-                    Simpan
+                    <i v-if="submitting" class="pi pi-spin pi-spinner mr-2"></i>
+                    {{ submitting ? 'Menyimpan...' : 'Simpan' }}
                 </button>
             </div>
         </form>

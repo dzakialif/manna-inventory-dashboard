@@ -59,10 +59,20 @@ const router = createRouter({
                     name: "barang_keluar",
                     component: () => import("@/pages/barang-keluar/BarangKeluar.vue")
                 },
+                {
+                    path: "/kategori",
+                    name: "kategori",
+                    component: () => import("@/pages/kategori/Kategori.vue")
+                },
                 // {
-                //     path: "/kategori-barang",
-                //     name: "kategori_barang",
-                //     component: () => import("@/pages/kategori-barang/KategoriBarang.vue")
+                //     path: "/kategori/create",
+                //     name: "create_kategori",
+                //     component: () => import("@/pages/kategori/Form.vue")
+                // },
+                // {
+                //     path: "/kategori/edit/:id",
+                //     name: "edit_kategori",
+                //     component: () => import("@/pages/kategori/Form.vue")
                 // },
                 {
                     path: "/stock-opname",

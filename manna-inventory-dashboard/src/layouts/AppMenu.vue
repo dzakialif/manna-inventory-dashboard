@@ -9,7 +9,7 @@ const model = ref([
       { label: 'Dashboard', icon: 'mdi:home', to: '/dashboard' },
       { label: 'Master Data', icon: 'mdi:database', 
       items: [
-        { label: 'Kategori Barang', icon:'mdi:category', to: '/kategori-barang' },
+        { label: 'Kategori Barang', icon:'mdi:category', to: '/kategori' },
         { label: 'Barang', icon: 'mdi:package', to: '/barang' },
       ]
     },
