@@ -1,8 +1,14 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { api } from '@/utils/api'
 import Dialog from 'primevue/dialog'
+import { useToast } from 'primevue/usetoast'
 import Logo from '@/assets/images/logo-mannapanna.png'
 import LogPict from '@/assets/images/login-picture.jpg'
+
+const router = useRouter()
+const toast = useToast()
 
 const backgroundColor = ref('#1a1a2e')
 
@@ -29,21 +35,57 @@ const refreshCaptcha = () => {
     console.log('Refresh captcha')
 }
 
-const doLogin = (event) => {
+const doLogin = async (event) => {
     form.value.loading = true
     
-    // Simulasi login
-    setTimeout(() => {
-        console.log('Login attempt:', {
+    try {
+        const response = await api.post('/auth/login', {
             email: form.value.email,
-            password: form.value.password,
-            captcha: form.value.captcha_value
+            password: form.value.password
         })
-        form.value.loading = false
+
+        if (response.data && response.data.data && response.data.data.accessToken) {
+            const token = response.data.data.accessToken
+            const user = response.data.data.user
+
+            // Simpan token dan data user ke localStorage
+            localStorage.setItem('token', token)
+            if (response.data.data.refreshToken) {
+                localStorage.setItem('refreshToken', response.data.data.refreshToken)
+            }
+            localStorage.setItem('user', JSON.stringify(user))
+
+            // Redirect ke halaman dashboard
+            router.push('/dashboard')
+        } else {
+            toast.add({ severity: 'error', summary: 'Login Gagal', detail: 'Format respons tidak sesuai.', life: 5000 })
+        }
+    } catch (error) {
+        console.error('Login error:', error)
+        let message = 'Gagal melakukan login. Periksa kembali email dan kata sandi Anda.'
+        let summary = 'Login Gagal'
         
-        // Simulasi sukses login
-        alert('Login berhasil! (Dummy)')
-    }, 1500)
+        if (error.response && error.response.data) {
+            if (error.response.data.errors && error.response.data.errors.length > 0) {
+                message = error.response.data.errors[0]
+            } else if (error.response.data.message) {
+                message = error.response.data.message
+            }
+            
+            if (message.toLowerCase().includes('email')) {
+                summary = 'Email Tidak Terdaftar'
+            } else if (message.toLowerCase().includes('sandi') || message.toLowerCase().includes('password')) {
+                summary = 'Kata Sandi Salah'
+            }
+        } else if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+            summary = 'Koneksi Terputus'
+            message = 'Tidak dapat terhubung ke server. Pastikan aplikasi backend sudah menyala.'
+        }
+        
+        toast.add({ severity: 'error', summary: summary, detail: message, life: 5000 })
+    } finally {
+        form.value.loading = false
+    }
 }
 
 const revokeLogin = (response) => {

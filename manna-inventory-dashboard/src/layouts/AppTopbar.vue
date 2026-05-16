@@ -1,7 +1,7 @@
 <script>
 import { useLayout } from "@/layouts/composables/layout";
-import axios from "axios";
 import { Icon } from '@iconify/vue';
+import { api } from '@/utils/api';
 
 export default {
     components: {
@@ -78,19 +78,17 @@ export default {
                     label: "Logout",
                     icon: "pi pi-sign-out",
                     command: () => {
-                        this.$auth.logout({
-                            makeRequest: true,
-                            redirect: { name: "login" },
-                        });
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('refreshToken');
+                        localStorage.removeItem('user');
+                        this.$router.push('/login');
                     },
                 },
             ],
             form_profile: {
                 name: "",
+                username: "",
                 email: "",
-                phone: "",
-                photo: "",
-                photo_preview: "",
                 loading: false,
             },
             form_password: {
@@ -172,14 +170,9 @@ export default {
             }
         },
         "form_password.password": function (newValue, oldValue) {
-            const regex =
-                /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!$@%])[A-Za-z\d!$@%]{6,}$/;
-
             if (!newValue) {
                 this.error.password = true;
-            } else if (newValue.length < 6) {
-                this.error.password = true;
-            } else if (!regex.test(newValue)) {
+            } else if (newValue.length < 8) {
                 this.error.password = true;
             } else {
                 this.error.password = false;
@@ -196,13 +189,7 @@ export default {
     created() {
         const layout = useLayout();
         this.toggleMenu = layout.toggleMenu;
-        // this.fetchUserProfile(); // Temporarily disabled to focus on layout rendering.
-
-        // Dummy profile to keep topbar/avatar visible without backend dependency.
-        this.userProfile = {
-            name: "Guest User",
-            photo_url: "",
-        };
+        this.fetchUserProfile();
 
         this._notifClickOutside = this.handleNotificationClickOutside.bind(this);
         document.addEventListener("mousedown", this._notifClickOutside);
@@ -256,54 +243,34 @@ export default {
         },
         async fetchUserProfile() {
             try {
-                const response = await axios.get(
-                    `${import.meta.env.VITE_API_URL}/setting/profile`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${this.$auth.token()}`,
-                        },
-                    },
-                );
+                const userJson = localStorage.getItem('user');
+                let userId = '';
+                if (userJson) {
+                    const parsed = JSON.parse(userJson);
+                    userId = parsed.userId || parsed.id || '';
+                }
 
-                if (response.data.code === 200) {
+                if (!userId) return;
+
+                const response = await api.get('/users/' + userId);
+
+                if (response.data && response.data.data) {
                     this.userProfile = response.data.data;
 
                     this.form_profile = {
                         name: this.userProfile.name || "",
+                        username: this.userProfile.username || "",
                         email: this.userProfile.email || "",
-                        phone: this.userProfile.phone || "",
-                        photo_preview: this.userProfile.photo_url || "",
                     };
-                }
-
-                const pictureResponse = await axios.get(
-                    `${import.meta.env.VITE_API_URL}/setting/profile/picture`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${this.$auth.token()}`,
-                        },
-                    },
-                );
-
-                if (
-                    pictureResponse.data.code === 200 &&
-                    pictureResponse.data.data.image
-                ) {
-                    this.form_profile.photo_preview =
-                        pictureResponse.data.data.image;
                 }
             } catch (error) {
                 this.$toast.add({
                     severity: "error",
                     summary: "Gagal memuat profil",
                     detail:
-                        error.response?.data?.message || "Terjadi kesalahan",
+                        error.response?.data?.message || error.message || "Terjadi kesalahan",
                     life: 5000,
                 });
-
-                if (error.response?.status === 401) {
-                    this.$auth.logout();
-                }
             }
         },
         toggle(event) {
@@ -312,69 +279,14 @@ export default {
         dialogProfile() {
             this.show_dialog.profile = true;
         },
-        async onInputFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            try {
-                const base64String = await this.convertFileToBase64(file);
-
-                const response = await axios.post(
-                    `${import.meta.env.VITE_API_URL}/setting/profile/picture`,
-                    { image: base64String },
-                    {
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${this.$auth.token()}`,
-                        },
-                    },
-                );
-
-                if (response.data.code === 200) {
-                    this.$toast.add({
-                        severity: "success",
-                        summary: "Foto profil berhasil diupdate!",
-                        life: 3000,
-                    });
-
-                    this.form_profile.photo_preview = base64String;
-
-                    await this.fetchUserProfile();
-                }
-            } catch (error) {
-                let errorMessage = "Terjadi kesalahan saat mengunggah foto";
-                if (error.response) {
-                    errorMessage =
-                        error.response.data.message ||
-                        error.response.statusText;
-                }
-                this.$toast.add({
-                    severity: "error",
-                    summary: "Gagal mengunggah foto",
-                    detail: errorMessage,
-                    life: 5000,
-                });
-            }
-        },
-
-        convertFileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => {
-                    const base64 = reader.result;
-                    resolve(base64);
-                };
-                reader.onerror = (error) => reject(error);
-            });
-        },
         async doChangeProfile() {
             this.form_profile.loading = true;
 
-            if (!this.form_profile.name || !this.form_profile.phone) {
+            if (!this.form_profile.name) {
                 this.$toast.add({
                     severity: "error",
                     summary: "Form tidak lengkap",
-                    detail: "Nama dan nomor handphone wajib diisi",
+                    detail: "Nama wajib diisi",
                     life: 3000,
                 });
                 this.form_profile.loading = false;
@@ -382,23 +294,29 @@ export default {
             }
 
             try {
+                const userJson = localStorage.getItem('user');
+                let userId = '';
+                if (userJson) {
+                    const parsed = JSON.parse(userJson);
+                    userId = parsed.userId || parsed.id || '';
+                }
+
+                if (!userId) {
+                    throw new Error("User ID tidak ditemukan");
+                }
+
                 const payload = {
                     name: this.form_profile.name,
-                    phone: this.form_profile.phone,
+                    username: this.form_profile.username,
+                    email: this.form_profile.email,
                 };
 
-                const response = await axios.post(
-                    `${import.meta.env.VITE_API_URL}/setting/profile`,
-                    payload,
-                    {
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${this.$auth.token()}`,
-                        },
-                    },
+                const response = await api.put(
+                    '/users/' + userId,
+                    payload
                 );
 
-                if (response.data.code === 200) {
+                if (response.status === 200) {
                     this.$toast.add({
                         severity: "success",
                         summary:
@@ -417,10 +335,33 @@ export default {
             } catch (error) {
                 console.error("Update error:", error);
 
+                let errorMessage = "Terjadi kesalahan saat memperbarui profil";
+                let errorSummary = "Gagal Memperbarui Profil";
+
+                if (error.response && error.response.data) {
+                    if (error.response.data.errors && error.response.data.errors.length > 0) {
+                        errorMessage = error.response.data.errors[0];
+                    } else if (error.response.data.message) {
+                        errorMessage = error.response.data.message;
+                    }
+
+                    if (errorMessage.toLowerCase().includes('already exists')) {
+                        errorSummary = "Data Sudah Digunakan";
+                        if (errorMessage.toLowerCase().includes('email')) {
+                            errorMessage = "Email yang Anda masukkan sudah terdaftar oleh pengguna lain.";
+                        } else if (errorMessage.toLowerCase().includes('username')) {
+                            errorMessage = "Username yang Anda masukkan sudah digunakan.";
+                        }
+                    }
+                } else if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+                    errorSummary = "Koneksi Terputus";
+                    errorMessage = "Tidak dapat terhubung ke server.";
+                }
+
                 this.$toast.add({
                     severity: "error",
-                    summary: "Gagal memperbarui profil",
-                    detail: error.response?.data?.message || error.message,
+                    summary: errorSummary,
+                    detail: errorMessage,
                     life: 5000,
                 });
             } finally {
@@ -454,25 +395,31 @@ export default {
             this.form_password.loading = true;
 
             try {
+                const userJson = localStorage.getItem('user');
+                let userId = '';
+                if (userJson) {
+                    const parsed = JSON.parse(userJson);
+                    userId = parsed.userId || parsed.id || '';
+                }
+
+                if (!userId) {
+                    throw new Error("User ID tidak ditemukan");
+                }
+
                 const payload = {
-                    current_password: this.form_password.old_password,
-                    new_password: this.form_password.password,
+                    currentPassword: this.form_password.old_password,
+                    newPassword: this.form_password.password,
+                    confirmPassword: this.form_password.password_confirmation,
                 };
 
                 console.log("Payload yang dikirim:", payload);
 
-                const response = await axios.post(
-                    `${import.meta.env.VITE_API_URL}/setting/change-password`,
-                    payload,
-                    {
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${this.$auth.token()}`,
-                        },
-                    },
+                const response = await api.post(
+                    '/users/' + userId + '/reset-password',
+                    payload
                 );
 
-                if (response.data && response.data.code === 200) {
+                if (response.status === 200) {
                     this.$toast.add({
                         severity: "success",
                         summary: "Password berhasil diubah!",
@@ -496,23 +443,32 @@ export default {
                 console.error("Change password error:", error);
 
                 let errorMessage = "Terjadi kesalahan saat mengubah password";
-                if (error.response) {
-                    if (error.response.status === 400) {
-                        errorMessage = "Password lama salah";
-                        this.error.old_password = true;
-                        this.error.old_password_message =
-                            "Password lama yang Anda masukkan salah";
-                    } else if (
-                        error.response.data &&
-                        error.response.data.message
-                    ) {
+                let errorSummary = "Gagal Mengubah Password";
+
+                if (error.response && error.response.data) {
+                    if (error.response.data.errors && error.response.data.errors.length > 0) {
+                        errorMessage = error.response.data.errors[0];
+                    } else if (error.response.data.message) {
                         errorMessage = error.response.data.message;
                     }
+
+                    if (errorMessage.toLowerCase().includes('invalid current password') || error.response.status === 401) {
+                        errorSummary = "Kata Sandi Lama Salah";
+                        errorMessage = "Kata sandi lama yang Anda masukkan tidak sesuai.";
+                        this.error.old_password = true;
+                        this.error.old_password_message = errorMessage;
+                    } else if (errorMessage.toLowerCase().includes('do not match')) {
+                        errorSummary = "Validasi Gagal";
+                        errorMessage = "Konfirmasi kata sandi baru tidak cocok.";
+                    }
+                } else if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+                    errorSummary = "Koneksi Terputus";
+                    errorMessage = "Tidak dapat terhubung ke server.";
                 }
 
                 this.$toast.add({
                     severity: "error",
-                    summary: "Gagal mengubah password",
+                    summary: errorSummary,
                     detail: errorMessage,
                     life: 5000,
                 });
@@ -630,19 +586,8 @@ export default {
                         </Transition>
                     </div>
                     <div class="layout-topbar-action" @click="dialogProfile()">
-                        <div
-                            class="photo w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600"
-                            :style="{
-                                backgroundImage: `url(${userProfile?.photo_url || form_profile.photo_preview})`,
-                            }"
-                        >
-                            <i
-                                class="pi pi-user"
-                                v-if="
-                                    !userProfile?.photo_url &&
-                                    !form_profile.photo_preview
-                                "
-                            ></i>
+                        <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
+                            <i class="pi pi-user text-xl"></i>
                         </div>
                     </div>
 
@@ -676,109 +621,109 @@ export default {
         v-model:visible="show_dialog.profile"
         header="Akun"
         :style="{ width: '500px' }"
+        class="profile-dialog"
     >
+        <!-- User Card Header -->
+        <div class="profile-header">
+            <div class="profile-header-avatar">
+                <i class="pi pi-user text-2xl"></i>
+            </div>
+            <div class="profile-header-info">
+                <h5 class="font-farro font-semibold text-base m-0 text-gray-800">
+                    {{ userProfile?.name || user?.name }}
+                </h5>
+                <span class="font-farro text-sm text-gray-500">
+                    {{ userProfile?.email || form_profile.email || '—' }}
+                </span>
+            </div>
+        </div>
+
         <Tabs value="0">
             <TabList>
                 <Tab value="0" class="text-left">
-                    <h6 class="mb-0 text-sm">Edit Profil</h6>
+                    <h6 class="mb-0 text-sm font-farro"><i class="pi pi-user mr-1 text-xs"></i> Edit Profil</h6>
                 </Tab>
                 <Tab value="1" class="text-left">
-                    <h6 class="mb-0 text-sm">Edit Kata Sandi</h6>
+                    <h6 class="mb-0 text-sm font-farro"><i class="pi pi-lock mr-1 text-xs"></i> Edit Kata Sandi</h6>
                 </Tab>
             </TabList>
             <TabPanels>
                 <TabPanel value="0">
-                    <div
-                        class="card !p-5 !mb-6 mt-4 flex relative justify-between items-center"
-                    >
-                        <div
-                            class="photo w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600"
-                            :style="{
-                                backgroundImage: `url(${form_profile.photo_preview})`,
-                            }"
-                        >
-                            <i
-                                class="pi pi-user"
-                                v-if="!form_profile.photo_preview"
-                            ></i>
-                        </div>
-                        <div class="font-farro text-sm">
-                            Ganti Foto Profil
-                            <i class="pi pi-chevron-right"></i>
-                        </div>
-                        <input
-                            class="absolute w-full h-full opacity-0"
-                            type="file"
-                            @input="onInputFile"
-                            accept=".jpeg, .jpg, .png, .svg, .webp"
-                        />
-                    </div>
-                    <form @submit.prevent="doChangeProfile()">
+                    <form @submit.prevent="doChangeProfile()" class="mt-4 px-1">
                         <div class="form-group mb-4">
-                            <label class="block font-farro mb-2"
+                            <label class="block font-farro mb-2 text-sm text-gray-600"
                                 >Nama Lengkap</label
                             >
-                            <InputText
-                                type="text"
-                                placeholder="Nama Lengkap"
-                                class="w-full h-12"
-                                v-model="form_profile.name"
-                                :disabled="form_profile.loading"
-                                required
-                            />
+                            <IconField>
+                                <InputIcon class="pi pi-user" />
+                                <InputText
+                                    type="text"
+                                    placeholder="Nama Lengkap"
+                                    class="w-full h-12 font-farro !border !border-gray-300 !rounded-lg focus:!border-primary focus:!ring-1 focus:!ring-primary"
+                                    v-model="form_profile.name"
+                                    :disabled="form_profile.loading"
+                                    required
+                                />
+                            </IconField>
                         </div>
                         <div class="form-group mb-4">
-                            <label class="block font-farro mb-2"
-                                >Nomor Handphone</label
+                            <label class="block font-farro mb-2 text-sm text-gray-600"
+                                >Username</label
                             >
-                            <InputText
-                                type="text"
-                                placeholder="+62 896 1234 1234"
-                                class="w-full h-12"
-                                v-model="form_profile.phone"
-                                :disabled="form_profile.loading"
-                                required
-                            />
+                            <IconField>
+                                <InputIcon class="pi pi-at" />
+                                <InputText
+                                    type="text"
+                                    placeholder="Username"
+                                    class="w-full h-12 font-farro !border !border-gray-300 !rounded-lg focus:!border-primary focus:!ring-1 focus:!ring-primary"
+                                    v-model="form_profile.username"
+                                    :disabled="form_profile.loading"
+                                />
+                            </IconField>
                         </div>
                         <div class="form-group mb-6">
-                            <label class="block font-farro mb-2"
+                            <label class="block font-farro mb-2 text-sm text-gray-600"
                                 >Email</label
                             >
-                            <InputText
-                                type="email"
-                                placeholder="example@mail.com"
-                                class="w-full h-12"
-                                v-model="form_profile.email"
-                                :disabled="form_profile.loading"
-                                readonly
-                            />
+                            <IconField>
+                                <InputIcon class="pi pi-envelope" />
+                                <InputText
+                                    type="email"
+                                    placeholder="example@mail.com"
+                                    class="w-full h-12 font-farro !border !border-gray-300 !rounded-lg focus:!border-primary focus:!ring-1 focus:!ring-primary"
+                                    v-model="form_profile.email"
+                                    :disabled="form_profile.loading"
+                                />
+                            </IconField>
                         </div>
-                        <div class="flex justify-end gap-2">
-                            <Button
+                        <div class="flex justify-end gap-3 pt-2">
+                            <button
                                 type="button"
-                                label="Batal"
-                                severity="secondary"
+                                class="profile-btn-cancel font-farro"
                                 @click="show_dialog.profile = false"
-                            ></Button>
+                            >
+                                Batal
+                            </button>
                             <button
                                 type="button"
                                 @click="doChangeProfile()"
-                                class="rounded-lg btn-primary w-20 text-white hover:bg-primary-emphasis disabled:border-gray-200 disabled:bg-gray-200"
+                                class="profile-btn-save font-farro"
                                 :disabled="form_profile.loading"
                             >
                                 <i
-                                    class="pi pi-spin pi-spinner text-[20px]"
+                                    class="pi pi-spin pi-spinner text-base"
                                     v-if="form_profile.loading"
                                 ></i>
+                                <i class="pi pi-check text-sm" v-else></i>
                                 Simpan
                             </button>
                         </div>
                     </form>
                 </TabPanel>
                 <TabPanel value="1">
-                    <form @submit.prevent="doChangePassword()" class="py-4">
-                        <div class="form-group mb-0">
-                            <label class="block font-farro mb-2"
+                    <form @submit.prevent="doChangePassword()" class="mt-4 px-1">
+                        <div class="form-group mb-4">
+                            <label class="block font-farro mb-2 text-sm text-gray-600"
                                 >Kata Sandi Lama</label
                             >
                             <IconField>
@@ -790,7 +735,7 @@ export default {
                                             : 'password'
                                     "
                                     placeholder="Masukkan kata sandi lama"
-                                    class="w-full h-12"
+                                    class="w-full h-12 font-farro !border !border-gray-300 !rounded-lg focus:!border-primary focus:!ring-1 focus:!ring-primary"
                                     :invalid="error.old_password"
                                     v-model="form_password.old_password"
                                     required
@@ -805,12 +750,12 @@ export default {
                                 />
                             </IconField>
                         </div>
-                        <hr />
+                        <div class="profile-divider"></div>
                         <div class="form-group mb-4">
-                            <label class="block font-farro mb-2"
+                            <label class="block font-farro mb-2 text-sm text-gray-600"
                                 >Kata Sandi Baru</label
                             >
-                            <IconField class="mb-1">
+                            <IconField class="mb-2">
                                 <InputIcon class="pi pi-key" />
                                 <InputText
                                     :type="
@@ -819,7 +764,7 @@ export default {
                                             : 'password'
                                     "
                                     placeholder="Masukkan kata sandi baru"
-                                    class="w-full h-12"
+                                    class="w-full h-12 font-farro !border !border-gray-300 !rounded-lg focus:!border-primary focus:!ring-1 focus:!ring-primary"
                                     v-model="form_password.password"
                                     :invalid="error.password"
                                     required
@@ -833,18 +778,16 @@ export default {
                                     "
                                 />
                             </IconField>
-                            <small
-                                class="opacity-60"
-                                :class="{ 'text-red-500': error.password }"
-                            >
-                                Kata sandi Anda harus minimal 6 karakter dan
-                                harus menyertakan kombinasi lowercase dan
-                                uppercase, angka, huruf, dan karakter khusus
-                                (!$@%%).
-                            </small>
+                            <div class="flex items-center gap-1 text-xs mt-1 font-farro transition-colors duration-200" 
+                                 :class="!form_password.password ? 'text-gray-500' : (error.password ? 'text-danger' : 'text-success')">
+                                <i :class="!form_password.password ? 'pi pi-info-circle' : (error.password ? 'pi pi-times-circle' : 'pi pi-check-circle')" class="text-xs"></i>
+                                <span>
+                                    Input password baru minimal 8 karakter.
+                                </span>
+                            </div>
                         </div>
                         <div class="form-group mb-6">
-                            <label class="block font-farro mb-2"
+                            <label class="block font-farro mb-2 text-sm text-gray-600"
                                 >Konfirmasi Kata Sandi Baru</label
                             >
                             <IconField>
@@ -856,7 +799,7 @@ export default {
                                             : 'password'
                                     "
                                     placeholder="Masukkan kata sandi baru, lagi"
-                                    class="w-full h-12"
+                                    class="w-full h-12 font-farro !border !border-gray-300 !rounded-lg focus:!border-primary focus:!ring-1 focus:!ring-primary"
                                     v-model="
                                         form_password.password_confirmation
                                     "
@@ -872,24 +815,33 @@ export default {
                                     "
                                 />
                             </IconField>
+                            <div class="flex items-center gap-1 text-xs mt-1 font-farro transition-colors duration-200" 
+                                 :class="!form_password.password_confirmation ? 'text-gray-500' : (error.password_confirmation ? 'text-danger' : 'text-success')">
+                                <i :class="!form_password.password_confirmation ? 'pi pi-info-circle' : (error.password_confirmation ? 'pi pi-times-circle' : 'pi pi-check-circle')" class="text-xs"></i>
+                                <span>
+                                    {{ !form_password.password_confirmation ? 'Ketik ulang kata sandi baru Anda.' : (error.password_confirmation ? 'Kata sandi tidak cocok dengan kata sandi baru.' : 'Kata sandi cocok.') }}
+                                </span>
+                            </div>
                         </div>
-                        <div class="flex justify-end gap-2">
-                            <Button
+                        <div class="flex justify-end gap-3 pt-2">
+                            <button
                                 type="button"
-                                label="Batal"
-                                severity="secondary"
+                                class="profile-btn-cancel font-farro"
                                 @click="show_dialog.profile = false"
-                            ></Button>
+                            >
+                                Batal
+                            </button>
                             <button
                                 type="button"
                                 @click="doChangePassword()"
-                                class="rounded-lg btn-primary w-20 text-white hover:bg-primary-emphasis disabled:border-gray-200 disabled:bg-gray-200 px-3"
+                                class="profile-btn-save font-farro"
                                 :disabled="form_password.loading"
                             >
                                 <i
-                                    class="pi pi-spin pi-spinner text-[20px]"
+                                    class="pi pi-spin pi-spinner text-base"
                                     v-if="form_password.loading"
                                 ></i>
+                                <i class="pi pi-check text-sm" v-else></i>
                                 Simpan
                             </button>
                         </div>
@@ -923,14 +875,122 @@ export default {
 .card {
     box-shadow: 0px 2px 10px 0px #0000001a;
 }
-.photo {
-    background-repeat: no-repeat;
-    background-size: cover;
+
+/* ── Profile Dialog ── */
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    margin: -8px -24px 16px;
+    background: linear-gradient(135deg, rgba(11, 100, 52, 0.08) 0%, rgba(11, 100, 52, 0.03) 100%);
+    border-bottom: 1px solid rgba(11, 100, 52, 0.12);
+    border-radius: 0;
 }
-input[type=file],
-input[type=file]::-webkit-file-upload-button {
+
+.profile-header-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #0B6434;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(11, 100, 52, 0.3);
+    flex-shrink: 0;
+}
+
+.profile-header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.profile-readonly-field {
+    opacity: 0.65;
+}
+
+.profile-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #d1fae5 20%, #d1fae5 80%, transparent);
+    margin: 4px 0 16px;
+}
+
+.password-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #9ca3af;
+    padding: 6px 8px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #f3f4f6;
+
+    &--error {
+        color: #ef4444;
+        background: #fef2f2;
+        border-color: #fee2e2;
+    }
+}
+
+.profile-btn-cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+        color: #374151;
+    }
 }
+
+.profile-btn-save {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 24px;
+    border-radius: 10px;
+    border: none;
+    background: #0B6434;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(11, 100, 52, 0.25);
+
+    &:hover:not(:disabled) {
+        background: #0E7A40;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(11, 100, 52, 0.35);
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(0);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+}
+
 @media print {
     .no-print {
         display: none !important;
@@ -1052,13 +1112,13 @@ input[type=file]::-webkit-file-upload-button {
     transition: background 0.15s, border-color 0.15s;
 
     &--unread {
-        background: #f5f7ff;
-        border-color: #e0e5ff;
+        background: #ecfdf5;
+        border-color: #d1fae5;
         cursor: pointer;
 
         &:hover {
-            background: #eef1ff;
-            border-color: #c7d0ff;
+            background: #d1fae5;
+            border-color: #a7f3d0;
         }
 
         .notif-title {
@@ -1145,7 +1205,7 @@ input[type=file]::-webkit-file-upload-button {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #6366f1;
+    background: #0B6434;
     margin-top: 6px;
 }
 
@@ -1172,17 +1232,17 @@ input[type=file]::-webkit-file-upload-button {
     width: 100%;
     padding: 8px 12px;
     border-radius: 10px;
-    border: 1px solid #e0e7ff;
-    background: #f5f7ff;
-    color: #4f46e5;
+    border: 1px solid #d1fae5;
+    background: #ecfdf5;
+    color: #0B6434;
     font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
 
     &:hover:not(:disabled) {
-        background: #e0e7ff;
-        border-color: #c7d2fe;
+        background: #d1fae5;
+        border-color: #a7f3d0;
     }
 
     &:disabled {

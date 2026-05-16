@@ -7,11 +7,12 @@ const router = createRouter({
         {
             path: "/login",
             name:"login",
+            meta: { auth: false},
             component: () => import("@/pages/Auth/Login.vue")
         },
         {
             component: AppLayout,
-            meta: {},
+            meta: { auth: true},
             children: [
                 {
                     path: "/dashboard",
@@ -102,5 +103,31 @@ const router = createRouter({
         },
     ]
 })
+
+router.beforeEach((to, from, next) => {
+    const loggedIn = localStorage.getItem('token');
+    
+    // Mengecek apakah route butuh autentikasi
+    // Kita gunakan to.matched.some agar child route juga mewarisi meta auth dari parent-nya
+    const authRequired = to.matched.some(record => record.meta.auth === true);
+
+    if (authRequired && !loggedIn) {
+        // Jika butuh login tapi belum login, lempar ke halaman login
+        return next('/login');
+    }
+
+    if (to.path === '/login' && loggedIn) {
+        // Jika sudah login tapi mencoba ke halaman login, kembalikan ke dashboard
+        return next('/dashboard');
+    }
+
+    if (to.path === '/') {
+        // Redirect root ke dashboard
+        return next('/dashboard');
+    }
+
+    // Lanjutkan navigasi
+    next();
+});
 
 export default router;
