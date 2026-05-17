@@ -115,7 +115,7 @@ const revokeLogin = (response) => {
                     <div class="flex flex-col items-center gap-2 mb-8">
                         <img :src="Logo" alt="logo" class="w-36" />
                         <h1 class="text-2xl font-farro font-bold text-black">
-                            Manna Inventoy System
+                            Manna Inventory System
                         </h1>
                         <p class="text-black font-farro text-sm">
                             Enter your email and password to sign in to your account

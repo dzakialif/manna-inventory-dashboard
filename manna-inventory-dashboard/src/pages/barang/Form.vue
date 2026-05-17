@@ -20,8 +20,10 @@ export default {
         },
     },
     async mounted() {
-        this.initializeForm();
-        await this.fetchCategories();
+        await Promise.all([
+            this.fetchCategories(),
+            this.initializeForm(),
+        ]);
     },
     methods: {
         getDefaultForm() {
@@ -36,49 +38,43 @@ export default {
                 rasa: "",
             };
         },
-        initializeForm() {
+        async initializeForm() {
             if (!this.isEditMode) {
                 this.form = this.getDefaultForm();
                 return;
             }
 
-            const routeId = this.$route?.params?.id;
-            const rawDraft = sessionStorage.getItem("barang_edit_draft");
-
-            if (!rawDraft) {
-                return;
-            }
+            const productId = this.$route?.params?.id;
+            if (!productId) return;
 
             try {
-                const draft = JSON.parse(rawDraft);
-
-                if (String(draft.id) !== String(routeId)) {
-                    return;
+                const response = await api.get(`/products/${productId}`);
+                const product = response.data?.data;
+                if (product) {
+                    this.form = {
+                        kode_barang: product.productCode || "",
+                        nama: product.name || "",
+                        kategori: product.categoryId || "",
+                        ukuran: product.sizes || "",
+                        harga: product.price ?? "",
+                        stok: product.stock?.stock ?? 0,
+                        satuan: product.unit || "",
+                        rasa: product.flavors || "",
+                    };
                 }
-
-                this.form = {
-                    ...this.getDefaultForm(),
-                    kode_barang: draft.kode_barang || "",
-                    nama: draft.nama || "",
-                    kategori: draft.kategori || "",
-                    ukuran: draft.ukuran || "",
-                    harga: draft.harga ?? "",
-                    stok: draft.stok ?? "",
-                    satuan: draft.satuan || "",
-                    rasa: draft.rasa || "",
-                };
-            } catch {
+            } catch (error) {
+                console.error("Gagal mengambil data barang:", error);
                 this.$toast?.add?.({
-                    severity: "warn",
-                    summary: "Perhatian",
-                    detail: "Data edit tidak valid, silakan pilih edit ulang dari tabel.",
-                    life: 2500,
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal memuat data barang untuk diedit.",
+                    life: 3000,
                 });
             }
         },
         async fetchCategories() {
             try {
-                const response = await api.get('/categories/');
+                const response = await api.get('/categories/dropdown');
                 // Simpan hasil ke kategoriOptions, kita butuh name dan categoryId
                 this.kategoriOptions = response.data?.data || [];
             } catch (error) {
@@ -116,8 +112,16 @@ export default {
                         life: 3000,
                     });
                 } else {
-                    // Logika edit akan ditambahkan di request selanjutnya jika dibutuhkan
-                    // Untuk saat ini hanya mengsimulasikan success untuk edit
+                    const productId = this.$route?.params?.id;
+                    await api.put(`/products/${productId}`, {
+                        categoryId: payload.categoryId,
+                        productCode: payload.productCode,
+                        name: payload.name,
+                        unit: payload.unit,
+                        sizes: payload.sizes,
+                        flavors: payload.flavors,
+                        price: payload.price
+                    });
                     this.$toast?.add?.({
                         severity: "success",
                         summary: "Berhasil",

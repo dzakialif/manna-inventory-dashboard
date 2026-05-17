@@ -1,82 +1,15 @@
 <script>
+import { api } from "@/utils/api";
+
 export default {
     data() {
         return {
-            data: [
-                {
-                    id: 1,
-                    tanggal_opname: "2024-01-15",
-                    nama: "Moiaa Swiss Choco 1000grm",
-                    stok_sistem: 60,
-                    stok_fisik: 55,
-                    selisih: -5,
-                    note: "Barang rusak",
-                },
-                {
-                    id: 2,
-                    tanggal_opname: "2024-01-18",
-                    nama: "Moiaa Mango 1000grm",
-                    stok_sistem: 42,
-                    stok_fisik: 50,
-                    selisih: 8,
-                    note: "Stock fisik lebih banyak",
-                },
-                {
-                    id: 3,
-                    tanggal_opname: "2024-01-20",
-                    nama: "SBC Cappucino Original 1000grm",
-                    stok_sistem: 30,
-                    stok_fisik: 30,
-                    selisih: 0,
-                    note: "Sesuai",
-                },
-                {
-                    id: 4,
-                    tanggal_opname: "2024-01-22",
-                    nama: "Moiaa Strawberry 1000grm",
-                    stok_sistem: 24,
-                    stok_fisik: 20,
-                    selisih: -4,
-                    note: "Ada selisih keluar",
-                },
-                {
-                    id: 5,
-                    tanggal_opname: "2024-01-24",
-                    nama: "SBC Swiss Choco 1000grm",
-                    stok_sistem: 18,
-                    stok_fisik: 21,
-                    selisih: 3,
-                    note: "Penyesuaian penerimaan",
-                },
-                {
-                    id: 6,
-                    tanggal_opname: "2024-01-25",
-                    nama: "Moiaa Mango 200grm",
-                    stok_sistem: 55,
-                    stok_fisik: 55,
-                    selisih: 0,
-                    note: "Sesuai",
-                },
-                {
-                    id: 7,
-                    tanggal_opname: "2024-01-27",
-                    nama: "SBC Green Tea 500grm",
-                    stok_sistem: 16,
-                    stok_fisik: 14,
-                    selisih: -2,
-                    note: "Barang sample keluar",
-                },
-                {
-                    id: 8,
-                    tanggal_opname: "2024-01-29",
-                    nama: "Topping Cheese Cream 500grm",
-                    stok_sistem: 9,
-                    stok_fisik: 12,
-                    selisih: 3,
-                    note: "Hasil stock opname",
-                }
-            ],
+            data: [],
             loading: false,
+            currentPage: 0,
+            totalPages: 0,
+            pageSize: 10,
+            totalItems: 0,
             filters: {
                 tanggal_opname: { value: null, matchMode: "contains" },
                 nama: { value: null, matchMode: "contains" },
@@ -85,6 +18,8 @@ export default {
                 selisih: { value: null, matchMode: "contains" },
                 note: { value: null, matchMode: "contains" },
             },
+            sortField: null,
+            sortOrder: null,
             columnPt: {
                 headerCell: {
                     class: "font-farro",
@@ -103,7 +38,82 @@ export default {
             tempData: null
         };
     },
+    mounted() {
+        this.fetchStockOpnames();
+    },
     methods: {
+        async fetchStockOpnames(page = 0) {
+            this.loading = true;
+            try {
+                let queryParams = `page=${page}&size=${this.pageSize}`;
+
+                const f = this.filters;
+                if (f.tanggal_opname.value !== null && f.tanggal_opname.value !== '') queryParams += `&date=${encodeURIComponent(f.tanggal_opname.value)}`;
+                if (f.nama.value !== null && f.nama.value !== '') queryParams += `&productName=${encodeURIComponent(f.nama.value)}`;
+                if (f.stok_sistem.value !== null && f.stok_sistem.value !== '') queryParams += `&stockSystem=${encodeURIComponent(f.stok_sistem.value)}`;
+                if (f.stok_fisik.value !== null && f.stok_fisik.value !== '') queryParams += `&stockActual=${encodeURIComponent(f.stok_fisik.value)}`;
+                if (f.selisih.value !== null && f.selisih.value !== '') queryParams += `&diff=${encodeURIComponent(f.selisih.value)}`;
+                if (f.note.value !== null && f.note.value !== '') queryParams += `&note=${encodeURIComponent(f.note.value)}`;
+
+                if (this.sortField && this.sortOrder !== null) {
+                    let mappedSortField = this.sortField;
+                    if (this.sortField === 'nama') mappedSortField = 'productName';
+                    else if (this.sortField === 'tanggal_opname') mappedSortField = 'date';
+                    else if (this.sortField === 'stok_sistem') mappedSortField = 'stockSystem';
+                    else if (this.sortField === 'stok_fisik') mappedSortField = 'stockActual';
+                    else if (this.sortField === 'selisih') mappedSortField = 'diff';
+
+                    queryParams += `&sortBy=${mappedSortField}&sortDirection=${this.sortOrder === 1 ? 'asc' : 'desc'}`;
+                }
+
+                const response = await api.get(`/stock-opnames?${queryParams}`);
+                const result = response.data;
+
+                this.data = (result.data || []).map((item) => ({
+                    id: item.opnameId,
+                    opnameId: item.opnameId,
+                    productId: item.productId,
+                    nama: item.productName || '-',
+                    username: item.username || '-',
+                    tanggal_opname: item.date || '-',
+                    stok_sistem: item.stockSystem ?? 0,
+                    stok_fisik: item.stockActual ?? 0,
+                    selisih: item.diff ?? 0,
+                    note: item.note || '-',
+                    _raw: item
+                }));
+
+                if (result.pagging) {
+                    this.currentPage = result.pagging.currentPage;
+                    this.totalPages = result.pagging.totalPage;
+                    this.pageSize = result.pagging.size;
+                    this.totalItems = (result.pagging.totalItems !== undefined && result.pagging.totalItems !== null)
+                        ? result.pagging.totalItems
+                        : (result.pagging.totalPage * result.pagging.size);
+                }
+            } catch (error) {
+                console.error("Gagal memuat data stock opname:", error);
+                this.$toast?.add?.({
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal memuat data stock opname",
+                    life: 3000,
+                });
+            } finally {
+                this.loading = false;
+            }
+        },
+        onPage(event) {
+            this.fetchStockOpnames(event.page);
+        },
+        onSort(event) {
+            this.sortField = event.sortField;
+            this.sortOrder = event.sortOrder;
+            this.fetchStockOpnames(0);
+        },
+        onFilter(event) {
+            this.fetchStockOpnames(0);
+        },
         formatSelisih(value) {
             if (value > 0) return `+${value}`;
 
@@ -115,7 +125,7 @@ export default {
             return "text-danger";
         },
         editItem(item) {
-            sessionStorage.setItem("opname_edit_draft", JSON.stringify(item));
+            sessionStorage.setItem("opname_edit_draft", JSON.stringify(item._raw || item));
             this.$router.push({
                 name: "edit_opname",
                 params: { id: item.id },
@@ -125,19 +135,31 @@ export default {
             this.tempData = item;
             this.showDeleteDialog = true;
         },
-        deleteItem() {
+        async deleteItem() {
             if (!this.tempData) return;
 
-            this.data = this.data.filter((item) => item.id !== this.tempData.id);
-            this.showDeleteDialog = false;
-            this.tempData = null;
+            try {
+                await api.delete(`/stock-opnames/${this.tempData.id}`);
 
-            this.$toast?.add?.({
-                severity: "success",
-                summary: "Berhasil",
-                detail: "Data opname dihapus",
-                life: 2500,
-            });
+                this.data = this.data.filter((item) => item.id !== this.tempData.id);
+                this.showDeleteDialog = false;
+                this.tempData = null;
+
+                this.$toast?.add?.({
+                    severity: "success",
+                    summary: "Berhasil",
+                    detail: "Data stock opname berhasil dihapus",
+                    life: 2500,
+                });
+            } catch (error) {
+                console.error("Gagal menghapus stock opname:", error);
+                this.$toast?.add?.({
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal menghapus data stock opname",
+                    life: 3000,
+                });
+            }
         },
         toggle(event, itemId) {
             this.$refs[`menu_${itemId}`]?.toggle?.(event);
@@ -159,10 +181,16 @@ export default {
         <DataTable
             class="barang-datatable font-farro text-sm"
             :value="data"
+            lazy
+            removableSort
+            :totalRecords="totalItems"
+            @page="onPage"
+            @sort="onSort"
+            @filter="onFilter"
             v-model:filters="filters"
             filterDisplay="row"
             :paginator="true"
-            :rows="10"
+            :rows="pageSize"
             dataKey="id"
             :loading="loading"
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"

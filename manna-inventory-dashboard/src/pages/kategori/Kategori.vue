@@ -48,10 +48,24 @@ export default {
     this.fetchCategories();
   },
   methods: {
-    async fetchCategories() {
+    async fetchCategories( page = 0 ) {
       this.loading = true;
       try {
-        const response = await api.get('/categories/');
+        let queryParams = `page=${page}&size=${this.pageSize}`;
+
+        const f = this.filters;
+        if (f.nama.value !== null && f.nama.value !== '') queryParams += `&name=${encodeURIComponent(f.nama.value)}`;
+
+        if (this.sortField && this.sortOrder !== null) {
+          let mappedSortField = this.sortField;
+          if (this.sortField === 'nama') mappedSortField = 'name';
+          if (this.sortField === 'deskripsi') mappedSortField = 'desc';
+
+          queryParams += `&sortBy=${mappedSortField}&sortDirection=${this.sortOrder === 1 ? 'asc' : 'desc'}`;
+        }
+        
+
+        const response = await api.get(`/categories?${queryParams}`);
         const result = response.data;
 
         // Map API response fields ke field lokal yang digunakan tabel
@@ -69,7 +83,8 @@ export default {
           this.currentPage = result.pagging.currentPage;
           this.totalPages = result.pagging.totalPage;
           this.pageSize = result.pagging.size;
-          this.totalItems = result.pagging.totalItems;
+          // Fallback if totalItems is null, estimate from totalPage * size
+          this.totalItems = result.pagging.totalItems || (result.pagging.totalPage * result.pagging.size);
         }
       } catch (error) {
         console.error('Gagal memuat data kategori:', error);
@@ -82,6 +97,18 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    onPage(event) {
+      // event.page is the new page index (0-based)
+      this.fetchCategories(event.page);
+    },
+    onSort(event) {
+      this.sortField = event.sortField;
+      this.sortOrder = event.sortOrder;
+      this.fetchCategories(0); // Reset ke halaman pertama saat di-sort
+    },
+    onFilter(event) {
+      this.fetchCategories(0); // Reset ke halaman pertama saat filter berubah
     },
 
     // ── Form Dialog (Create / Edit) ──────────────────────
@@ -137,7 +164,7 @@ export default {
         if (this.isEdit) {
           await api.put(`/categories/${this.formData.categoryId}`, payload);
         } else {
-          await api.post('/categories/create', payload);
+          await api.post('/categories ', payload);
         }
 
         this.showFormDialog = false;
@@ -233,6 +260,12 @@ export default {
     <DataTable
       class="barang-datatable font-farro text-sm"
       :value="data"
+      lazy
+      removableSort
+      :totalRecords="totalItems"
+      @page="onPage"
+      @sort="onSort"
+      @filter="onFilter"
       v-model:filters="filters"
       filterDisplay="row"
       :paginator="true"

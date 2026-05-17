@@ -42,14 +42,25 @@ export default {
           style: { fontFamily: 'Farro, sans-serif' },
         },
       },
-      kategoriOptions: ['Moiaa', 'SBC', 'Topping'],
-      ukuranOptions: ['200', '500', '1000'],
-      rasaOptions: ['Coklat', 'Vanila', 'Green Tea', 'Stroberi', 'Mangga', 'Keju'],
+      kategoriOptions: [],
+      categoriesList: [],
+      ukuranOptions: [],
+      rasaOptions: [],
+      satuanOptions: [],
+      productOptions: [],
       showDeleteDialog: false,
       tempData: null,
     };
   },
-  mounted() {
+  async mounted() {
+    await Promise.all([
+      this.fetchCategoriesDropdown(),
+      this.fetchCategories(),
+      this.fetchRasaDropdown(),
+      this.fetchUkuranDropdown(),
+      this.fetchSatuanDropdown(),
+      this.fetchProductDropdown(),
+    ]);
     this.fetchProducts();
   },
   methods: {
@@ -59,8 +70,18 @@ export default {
         let queryParams = `page=${page}&size=${this.pageSize}`;
 
         const f = this.filters;
-        if (f.nama.value !== null && f.nama.value !== '') queryParams += `&name=${encodeURIComponent(f.nama.value)}`;
-        if (f.kategori.value !== null && f.kategori.value !== '') queryParams += `&categoryName=${encodeURIComponent(f.kategori.value)}`;
+        if (f.nama.value !== null && f.nama.value !== '') {
+          const prod = this.productOptions.find(p => p.value === f.nama.value);
+          const productName = prod ? prod.label : f.nama.value;
+          queryParams += `&name=${encodeURIComponent(productName)}`;
+        }
+        if (f.kategori.value !== null && f.kategori.value !== '') {
+          // Karena optionValue="categoryId", nilai f.kategori.value adalah categoryId (UUID)
+          // Kita terjemahkan dulu categoryId ke nama kategori agar filter di backend sukses
+          const cat = this.kategoriOptions.find(c => c.categoryId === f.kategori.value);
+          const categoryName = cat ? cat.name : f.kategori.value;
+          queryParams += `&categoryName=${encodeURIComponent(categoryName)}`;
+        }
         if (f.ukuran.value !== null && f.ukuran.value !== '') queryParams += `&sizes=${encodeURIComponent(f.ukuran.value)}`;
         if (f.harga.value !== null && f.harga.value !== '') queryParams += `&price=${encodeURIComponent(f.harga.value)}`;
         if (f.stok.value !== null && f.stok.value !== '') queryParams += `&stock=${encodeURIComponent(f.stok.value)}`;
@@ -88,7 +109,7 @@ export default {
         // Map API response fields ke field lokal yang digunakan tabel
         this.data = (result.data || []).map((item) => ({
           productId: item.productId,
-          categoryId: item.categoryId,
+          kategori: this.categoriesList.find(c => c.categoryId === item.categoryId)?.name || '-',
           kode_barang: item.productCode,
           nama: item.name,
           ukuran: item.sizes,
@@ -108,7 +129,9 @@ export default {
           this.totalPages = result.pagging.totalPage;
           this.pageSize = result.pagging.size;
           // Fallback if totalItems is null, estimate from totalPage * size
-          this.totalItems = result.pagging.totalItems || (result.pagging.totalPage * result.pagging.size);
+          this.totalItems = (result.pagging.totalItems !== undefined && result.pagging.totalItems !== null)
+            ? result.pagging.totalItems
+            : (result.pagging.totalPage * result.pagging.size);
         }
       } catch (error) {
         console.error('Gagal memuat data produk:', error);
@@ -168,19 +191,79 @@ export default {
       this.tempData = item;
       this.showDeleteDialog = true;
     },
-    deleteItem() {
+    async deleteItem() {
       if (!this.tempData) return;
 
-      this.data = this.data.filter((item) => item.productId !== this.tempData.productId);
-      this.showDeleteDialog = false;
-      this.tempData = null;
+      try {
+        await api.delete(`/products/${this.tempData.productId}`)
 
-      this.$toast?.add?.({
-        severity: 'success',
-        summary: 'Berhasil',
-        detail: 'Data barang dihapus',
-        life: 2500,
-      });
+        this.data = this.data.filter((item) => item.productId !== this.tempData.productId);
+        this.showDeleteDialog = false;
+        this.tempData = null;
+
+        this.$toast?.add?.({
+          severity: 'success',
+          summary: 'Berhasil',
+          detail: 'Data products berhasil dihapus',
+          life: 2500
+        });
+      } catch (error) {
+        console.error('Gagal menghapus product:', error);
+        this.$toast?.add?.({
+          severity: 'error',
+          summary: 'Gagal',
+          detail: error.message || 'Gagal menghapus data product',
+          life: 3000,
+        });
+      }
+    },
+    async fetchCategoriesDropdown() {
+      try {
+        const response = await api.get('/categories/dropdown');
+        this.kategoriOptions = response.data?.data || [];
+      } catch (error) {
+        console.error('Gagal memuat dropdown kategori:', error);
+      }
+    },
+    async fetchCategories() {
+      try {
+        const response = await api.get('/categories');
+        this.categoriesList = response.data?.data || [];
+      } catch (error) {
+        console.error('Gagal memuat list kategori:', error);
+      }
+    },
+    async fetchRasaDropdown() {
+      try {
+        const response = await api.get('/products/flavors');
+        this.rasaOptions = response.data?.data || [];
+      } catch (error) {
+        console.error('Gagal memuat dropdown rasa:', error);
+      }
+    },
+    async fetchUkuranDropdown() {
+      try {
+        const response = await api.get('/products/sizes');
+        this.ukuranOptions = response.data?.data || [];
+      } catch (error) {
+        console.error('Gagal memuat dropdown ukuran:', error);
+      }
+    },
+    async fetchSatuanDropdown() {
+      try {
+        const response = await api.get('/products/units');
+        this.satuanOptions = response.data?.data || [];
+      } catch (error) {
+        console.error('Gagal memuat dropdown satuan:', error);
+      }
+    },
+    async fetchProductDropdown() {
+      try {
+        const response = await api.get('/products/dropdown');
+        this.productOptions = response.data?.data || [];
+      } catch (error) {
+        console.error('Gagal memuat dropdown produk:', error);
+      }
     },
     toggle(event, itemId) {
       this.$refs[`menu_${itemId}`]?.toggle?.(event);
@@ -263,12 +346,28 @@ export default {
       >
         <template #body="{ data }">{{ data.nama }}</template>
         <template #filter="{ filterModel, filterCallback }">
-          <input
+          <Select
             v-model="filterModel.value"
-            type="text"
-            class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Cari nama barang..."
-            @input="filterCallback()"
+            :options="productOptions"
+            optionLabel="label"
+            optionValue="value"
+            @change="filterCallback()"
+            placeholder="Pilih nama barang"
+            class="font-farro"
+            showClear
+            :pt="{
+            root: {
+                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
+            },
+            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
+            dropdown: { class: '!text-gray-400 !bg-white' },
+            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
+            listContainer: { class: 'bg-white' },
+            list: { class: '!bg-white' },
+            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
+            optionLabel: { class: '!text-black' },
+            emptyMessage: { class: '!text-black !bg-white' },
+            }"
           />
         </template>
       </Column>
@@ -289,6 +388,8 @@ export default {
           <Select
             v-model="filterModel.value"
             :options="kategoriOptions"
+            optionLabel="name"
+            optionValue="categoryId"
             @change="filterCallback()"
             placeholder="Pilih kategori"
             class="font-farro"
@@ -326,6 +427,8 @@ export default {
           <Select
             v-model="filterModel.value"
             :options="ukuranOptions"
+            optionLabel="label"
+            optionValue="value"
             @change="filterCallback()"
             placeholder="Pilih ukuran"
             class="font-farro"
@@ -408,12 +511,28 @@ export default {
       >
         <template #body="{ data }">{{ data.satuan }}</template>
         <template #filter="{ filterModel, filterCallback }">
-          <input
+          <Select
             v-model="filterModel.value"
-            type="text"
-            class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Cari satuan..."
-            @input="filterCallback()"
+            :options="satuanOptions"
+            optionLabel="label"
+            optionValue="value"
+            @change="filterCallback()"
+            placeholder="Pilih satuan"
+            class="font-farro"
+            showClear
+            :pt="{
+            root: {
+                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
+            },
+            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
+            dropdown: { class: '!text-gray-400 !bg-white' },
+            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
+            listContainer: { class: 'bg-white' },
+            list: { class: '!bg-white' },
+            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
+            optionLabel: { class: '!text-black' },
+            emptyMessage: { class: '!text-black !bg-white' },
+            }"
           />
         </template>
       </Column>
@@ -434,6 +553,8 @@ export default {
           <Select
             v-model="filterModel.value"
             :options="rasaOptions"
+            optionLabel="label"
+            optionValue="value"
             @change="filterCallback()"
             placeholder="Pilih rasa"
             class="font-farro"
