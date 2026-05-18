@@ -70,7 +70,6 @@ export default {
                 const result = response.data;
 
                 this.data = (result.data || []).map((item) => ({
-                    id: item.opnameId,
                     opnameId: item.opnameId,
                     productId: item.productId,
                     nama: item.productName || '-',
@@ -120,7 +119,7 @@ export default {
             return `${value}`;
         },
         getSelisihClass(value) {
-            if (value === 0) return "text-primary";
+            if (value >= 0) return "text-primary";
 
             return "text-danger";
         },
@@ -128,7 +127,7 @@ export default {
             sessionStorage.setItem("opname_edit_draft", JSON.stringify(item._raw || item));
             this.$router.push({
                 name: "edit_opname",
-                params: { id: item.id },
+                params: { id: item.opnameId },
             });
         },
         confirmDelete(item) {
@@ -139,9 +138,9 @@ export default {
             if (!this.tempData) return;
 
             try {
-                await api.delete(`/stock-opnames/${this.tempData.id}`);
+                await api.delete(`/stock-opnames/${this.tempData.opnameId}`);
 
-                this.data = this.data.filter((item) => item.id !== this.tempData.id);
+                this.data = this.data.filter((item) => item.opnameId !== this.tempData.opnameId);
                 this.showDeleteDialog = false;
                 this.tempData = null;
 
@@ -191,7 +190,7 @@ export default {
             filterDisplay="row"
             :paginator="true"
             :rows="pageSize"
-            dataKey="id"
+            dataKey="opnameId"
             :loading="loading"
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
             currentPageReportTemplate="Menampilkan {first} ke {last} dari {totalRecords} total data"
@@ -352,14 +351,14 @@ export default {
                     <button
                         type="button"
                         class="block rounded-lg py-1 px-2 bg-white border border-gray-300 text-gray-500 text-sm hover:bg-gray-300"
-                        @click="toggle($event, data.id)"
+                        @click="toggle($event, data.opnameId)"
                     >
                         <i class="pi pi-ellipsis-h"></i>
                     </button>
 
                     <Menu
-                        :ref="`menu_${data.id}`"
-                        :id="'overlay_menu_' + data.id"
+                        :ref="`menu_${data.opnameId}`"
+                        :id="'overlay_menu_' + data.opnameId"
                         class="font-farro"
                         :popup="true"
                         :pt="{
@@ -389,29 +388,17 @@ export default {
         </DataTable>
     </div>
 
-    <Dialog
-        v-model:visible="showDeleteDialog"
-        header="Hapus Barang"
-        :style="{ width: '25rem' }"
-    >
+    <Dialog v-model:visible="showDeleteDialog" header="Hapus Opname" :style="{ width: '25rem' }">
         <span class="text-surface-500 block mb-8">
-            Apakah Anda yakin ingin menghapus barang <strong>{{ tempData?.nama }}</strong>?
+        Apakah Anda yakin ingin menghapus opname <strong>{{ tempData?.nama }}</strong
+        > pada tanggal <strong>{{ tempData?.tanggal_opname }}</strong
+        >?
         </span>
         <div class="flex justify-end gap-2">
-            <Button
-                type="button"
-                label="Batal"
-                severity="secondary"
-                @click="showDeleteDialog = false"
-            ></Button>
-            <button
-                type="button"
-                @click="deleteItem"
-                class="rounded-lg btn-primary px-6 text-white hover:bg-primary-emphasis disabled:border-gray-200 disabled:bg-gray-200"
-                :disabled="loading"
-            >
-                <i class="pi pi-trash mr-2"></i>Hapus
-            </button>
+        <Button type="button" label="Batal" severity="secondary" @click="showDeleteDialog = false"></Button>
+        <button type="button" @click="deleteItem" class="rounded-lg bg-danger px-6 text-white hover:bg-danger-dark disabled:border-gray-200 disabled:bg-gray-200" :disabled="loading">
+            <i class="pi pi-trash mr-2"></i>Hapus
+        </button>
         </div>
     </Dialog>
 </template>

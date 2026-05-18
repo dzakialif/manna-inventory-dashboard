@@ -1,14 +1,18 @@
 <script>
 import Select from "primevue/select";
+import Textarea from "primevue/textarea";
+import { api } from "@/utils/api";
 
 export default {
     components: {
         Select,
+        Textarea,
     },
     data() {
         return {
             form: this.getDefaultForm(),
-            barangOptions: ['Moiaa Swiss Choco 1000 grm', 'Moiaa Mango 200 grm', 'Moiaa Mango 1000 grm', 'SBC Cappucino Original 1000 grm', 'Moiaa Swiss Choco 200 grm'],
+            barangOptions: [],
+            submitting: false,
         };
     },
     computed: {
@@ -16,8 +20,32 @@ export default {
             return this.$route?.name === "edit_opname";
         },
     },
-    mounted() {
-        this.initializeForm();
+    watch: {
+        async "form.nama"(newVal) {
+            if (!newVal) {
+                this.form.stok_sistem = "";
+                return;
+            }
+
+            try {
+                const response = await api.get(`/stocks/${newVal}`);
+                this.form.stok_sistem = response.data?.data ?? "";
+            } catch (error) {
+                console.error("Gagal mengambil stok barang:", error);
+            }
+        },
+        "form.stok_sistem"() {
+            this.calculateSelisih();
+        },
+        "form.stok_fisik"() {
+            this.calculateSelisih();
+        },
+    },
+    async mounted() {
+        await Promise.all([
+            this.initializeForm(),
+            this.fetchProducts(),
+        ])
     },
     methods: {
         getDefaultForm() {
@@ -26,63 +54,133 @@ export default {
                 nama: "",
                 stok_sistem: "",
                 stok_fisik: "",
-                selisih: "",
+                selisih: 0,
                 note: "",
             };
         },
-        initializeForm() {
+        calculateSelisih() {
+            const sistem = Number(this.form.stok_sistem) || 0;
+            const fisik = Number(this.form.stok_fisik) || 0;
+            this.form.selisih = fisik - sistem;
+        },
+        async initializeForm() {
             if (!this.isEditMode) {
                 this.form = this.getDefaultForm();
                 return;
             }
 
-            const routeId = this.$route?.params?.id;
-            const rawDraft = sessionStorage.getItem("opname_edit_draft");
-
-            if (!rawDraft) {
-                return;
-            }
+            const opnameId = this.$route?.params?.id;
+            if (!opnameId) return;
 
             try {
-                const draft = JSON.parse(rawDraft);
-
-                if (String(draft.id) !== String(routeId)) {
-                    return;
+                const response = await api.get(`/stock-opnames/${opnameId}`);
+                const opname = response.data?.data;
+                if (opname) {
+                    this.form = {
+                        tanggal_opname: opname.date || "",
+                        nama: opname.productId || "",
+                        stok_sistem: opname.stockSystem || 0,
+                        stok_fisik: opname.stockActual || 0,
+                        selisih: opname.diff || 0,
+                        note: opname.note || "",
+                    }
                 }
-
-                this.form = {
-                    ...this.getDefaultForm(),
-                    tanggal_opname: draft.tanggal_opname || "",
-                    nama: draft.nama || "",
-                    stok_sistem: draft.stok_sistem || "",
-                    stok_fisik: draft.stok_fisik || "",
-                    selisih: draft.selisih || "",
-                    note: draft.note || "",
-                };
-            } catch {
+            } catch (error) {
+                console.error("Gagal mengambil data stock opname", error);
                 this.$toast?.add?.({
-                    severity: "warn",
-                    summary: "Perhatian",
-                    detail: "Data edit tidak valid, silakan pilih edit ulang dari tabel.",
-                    life: 2500,
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal memuat data stock opname untuk diedit.",
+                    life: 3000,
                 });
             }
         },
-        doSubmit() {
-            this.$toast?.add?.({
-                severity: "success",
-                summary: "Berhasil",
-                detail: this.isEditMode
-                    ? `Perubahan barang ${this.form.tanggal_opname || this.form.nama || ""} berhasil disimpan`
-                    : `Data barang ${this.form.tanggal_opname || this.form.nama || "baru"} siap disimpan`,
-                life: 3000,
-            });
+        async fetchProducts() {
+            try {
+                const response = await api.get(`/products/dropdown`);
+                this.barangOptions = response.data?.data || [];
+            } catch (error) {
+                console.error("Gagal memuat barang", error);
+                this.$toast?.add?.({
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal memuat data barang.",
+                    life: 3000,
+                });
+            }   
+        },
+        async doSubmit() {
+            if (this.submitting) return;
 
-            if (this.isEditMode) {
-                sessionStorage.removeItem("opname_edit_draft");
+            // validasi sederhana
+            if (!this.form.tanggal_opname || !this.form.nama || this.form.stok_sistem === "" || this.form.stok_fisik === "") {
+                this.$toast?.add?.({
+                    severity: "warn",
+                    summary: "Peringatan",
+                    detail: "Harap lengkapi field wajib!",
+                    life: 3000,
+                });
+                return;
             }
 
-            this.$router.push({ name: "stock-opname" });
+            this.submitting = true;
+            try {
+                // Ambil userId dari localStorage
+                const userJson = localStorage.getItem('user');
+                let userId = '';
+                if (userJson) {
+                    const parsed = JSON.parse(userJson);
+                    userId = parsed.userId || parsed.id || '';
+                }
+
+                const payload = {
+                    date: this.form.tanggal_opname,
+                    productId: this.form.nama,
+                    stockSystem: Number(this.form.stok_sistem) || 0,
+                    stockActual: Number(this.form.stok_fisik) || 0,
+                    note: this.form.note || "",
+                    userId: userId,
+                };
+
+                if (!this.isEditMode) {
+                    await api.post("/stock-opnames", payload);
+                    this.$toast?.add?.({
+                        severity: "success",
+                        summary: "Berhasil",
+                        detail: `Stock opname baru berhasil ditambahkan`,
+                        life: 3000,
+                    });
+                } else {
+                    const opnameId = this.$route?.params?.id;
+                    await api.put(`/stock-opnames/${opnameId}`, {
+                        date: payload.date,
+                        productId: payload.productId,
+                        stockSystem: payload.stockSystem,
+                        stockActual: payload.stockActual,
+                        note: payload.note,
+                        userId: payload.userId,
+                    });
+                    this.$toast?.add?.({
+                        severity: "success",
+                        summary: "Berhasil",
+                        detail: `Perubahan stock opname berhasil disimpan`,
+                        life: 3000,
+                    });
+                    sessionStorage.removeItem("opname_edit_draft");
+                }
+
+                this.$router.push({ name: "stock_opname" });
+            } catch (error) {
+                console.error("Gagal menyimpan stock opname", error);
+                this.$toast?.add?.({
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal menyimpan stock opname",
+                    life: 3000,
+                });
+            } finally {
+                this.submitting = false;
+            }
         },
     },
 };
@@ -111,6 +209,8 @@ export default {
                     <Select
                         v-model="form.nama"
                         :options="barangOptions"
+                        optionLabel="label"
+                        optionValue="value"
                         placeholder="Pilih barang"
                         class="font-farro w-full"
                         showClear
@@ -119,7 +219,7 @@ export default {
                             class: 'flex items-center !bg-white !text-black !border !border-gray-300 !rounded-lg !h-12 !w-full focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
                         },
                         label: { class: form.nama ? '!text-black !text-md' : '!text-gray-400 !text-md' },
-                        dropdown: { class: '!text-gray-500 !bg-white' },
+                        dropdown: { class: '!text-black !bg-white' },
                         overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
                         listContainer: { class: 'bg-white' },
                         list: { class: '!bg-white' },
@@ -159,8 +259,9 @@ export default {
                     <input
                         v-model="form.selisih"
                         type="text"
-                        class="font-farro h-12 w-full rounded-lg border border-gray-300 px-4 focus:ring-2 focus:ring-primary focus:outline-none"
-                        placeholder="Masukkan selisih..."
+                        readonly
+                        class="font-farro h-12 w-full rounded-lg border border-gray-300 bg-gray-100 px-4 focus:outline-none cursor-not-allowed"
+                        placeholder="Selisih otomatis dihitung..."
                     />
                 </div>
             </div>

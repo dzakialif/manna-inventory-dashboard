@@ -1,5 +1,6 @@
 <script>
 import Select from "primevue/select";
+import { api } from "@/utils/api";
 
 export default {
     components: {
@@ -7,90 +8,23 @@ export default {
     },
     data() {
         return {
-            data: [
-                {
-                    id: 1,
-                    tanggal: "2026-04-03",
-                    no_invoice: "IN-INV-202604-0001",
-                    jenis: "Masuk",
-                    total_transaksi: 18750000,
-                    dokumen: "Faktur Penjualan",
-                    user: "Rina - Admin Gudang",
-                },
-                {
-                    id: 2,
-                    tanggal: "2026-04-05",
-                    no_invoice: "IN-INV-202604-0002",
-                    jenis: "Masuk",
-                    total_transaksi: 9550000,
-                    dokumen: "Surat Jalan",
-                    user: "Dimas - Kasir",
-                },
-                {
-                    id: 3,
-                    tanggal: "2026-04-07",
-                    no_invoice: "IN-INV-202604-0003",
-                    jenis: "Masuk",
-                    total_transaksi: 14600000,
-                    dokumen: "Mutasi Stok",
-                    user: "Sari - Supervisor",
-                },
-                {
-                    id: 4,
-                    tanggal: "2026-04-09",
-                    no_invoice: "IN-INV-202604-0004",
-                    jenis: "Masuk",
-                    total_transaksi: 11250000,
-                    dokumen: "Faktur Penjualan",
-                    user: "Bayu - Kasir",
-                },
-                {
-                    id: 5,
-                    tanggal: "2026-04-12",
-                    no_invoice: "IN-INV-202604-0005",
-                    jenis: "Masuk",
-                    total_transaksi: 980000,
-                    dokumen: "Nota Retur",
-                    user: "Rina - Admin Gudang",
-                },
-                {
-                    id: 6,
-                    tanggal: "2026-04-15",
-                    no_invoice: "IN-INV-202604-0006",
-                    jenis: "Masuk",
-                    total_transaksi: 22100000,
-                    dokumen: "Surat Jalan",
-                    user: "Dimas - Kasir",
-                },
-                {
-                    id: 7,
-                    tanggal: "2026-04-18",
-                    no_invoice: "IN-INV-202604-0007",
-                    jenis: "Masuk",
-                    total_transaksi: 7340000,
-                    dokumen: "Mutasi Stok",
-                    user: "Sari - Supervisor",
-                },
-                {
-                    id: 8,
-                    tanggal: "2026-04-22",
-                    no_invoice: "IN-INV-202604-0008",
-                    jenis: "Masuk",
-                    total_transaksi: 12800000,
-                    dokumen: "Faktur Penjualan",
-                    user: "Bayu - Kasir",
-                }
-
-            ],
+            data: [],
+            usersMap: {},
             loading: false,
+            currentPage: 0,
+            totalPages: 0,
+            pageSize: 10,
+            totalItems: 0,
             filters: {
+                refNumber: { value: null, matchMode: "contains" },
                 tanggal: { value: null, matchMode: "contains" },
-                no_invoice: { value: null, matchMode: "contains" },
+                sumber: { value: null, matchMode: "contains" },
                 jenis: { value: null, matchMode: "contains" },
-                total_transaksi: { value: null, matchMode: "contains" },
-                dokumen: { value: null, matchMode: "contains" },
+                status: { value: null, matchMode: "contains" },
                 user: { value: null, matchMode: "contains" }
             },
+            sortField: null,
+            sortOrder: null,
             columnPt: {
                 headerCell: {
                     class: "font-farro",
@@ -105,16 +39,117 @@ export default {
                     style: { fontFamily: "Farro, sans-serif" }
                 }
             },
+            showCancelDialog: false,
             showDeleteDialog: false,
             tempData: null,
-            jenisOptions: ['Masuk', 'Keluar', 'Opname'],
+            jenisOptions: [
+                { label: 'Masuk', value: 'IN' },
+                { label: 'Keluar', value: 'OUT' }
+            ],
+            sumberOptions: [
+                { label: 'Manual', value: 'MANUAL' },
+                { label: 'Import PDF', value: 'PDF_IMPORT' }
+            ],
             showImportDialog: false,
             importFile: null,
             importJenis: null,
             isDragOver: false
         };
     },
+    async mounted() {
+        await this.fetchUsers();
+        await this.fetchTransactions();
+    },
     methods: {
+        async fetchUsers() {
+            try {
+                const response = await api.get('/users?size=100');
+                const users = response.data?.data || [];
+                const map = {};
+                users.forEach(u => {
+                    if (u.userId) {
+                        map[u.userId] = u.name || u.username || u.email || u.userId;
+                    }
+                });
+                this.usersMap = map;
+            } catch (error) {
+                console.error('Gagal mengambil data user untuk pemetaan:', error);
+            }
+        },
+        async fetchTransactions(page = 0) {
+          this.loading = true;
+          try {
+            let queryParams = `page=${page}&size=${this.pageSize}`;
+
+            const f = this.filters;
+            if (f.refNumber.value !== null && f.refNumber.value !== '') queryParams += `&referenceNumber=${encodeURIComponent(f.refNumber.value)}`;
+            if (f.tanggal.value !== null && f.tanggal.value !== '') queryParams += `&date=${encodeURIComponent(f.tanggal.value)}`;
+            if (f.sumber.value !== null && f.sumber.value !== '') queryParams += `&source=${encodeURIComponent(f.sumber.value)}`;
+            if (f.jenis.value !== null && f.jenis.value !== '') queryParams += `&transactionType=${encodeURIComponent(f.jenis.value)}`;
+            if (f.status.value !== null && f.status.value !== '') queryParams += `&status=${encodeURIComponent(f.status.value)}`;
+
+            if (this.sortField && this.sortOrder !== null) {
+                let mappedSortField = this.sortField;
+                if (this.sortField === 'refNumber') mappedSortField = 'referenceNumber';
+                if (this.sortField === 'tanggal') mappedSortField = 'date';
+                if (this.sortField === 'sumber') mappedSortField = 'source';
+                if (this.sortField === 'jenis') mappedSortField = 'transactionType';
+                if (this.sortField === 'status') mappedSortField = 'status';
+
+                queryParams += `&sortBy=${mappedSortField}&sortDirection=${this.sortOrder === 1 ? 'asc' : 'desc'}`;
+            }
+
+            const response = await api.get(`/transactions?${queryParams}`);
+            const result = response.data;
+
+            // map api response
+            this.data = (result.data || []). map((item) => ({
+                transactionId: item.transactionId,
+                id: item.transactionId, // Fallback for action menu refs and delete filtering
+                refNumber: item.referenceNumber || '-',
+                no_invoice: item.referenceNumber || '-', // Fallback for delete dialog invoice display
+                tanggal: item.date,
+                sumber: item.source === 'MANUAL' ? 'Manual' : (item.source === 'PDF_IMPORT' ? 'Import PDF' : item.source || '-'),
+                jenis: item.transactionType === 'IN' ? 'Masuk' : (item.transactionType === 'OUT' ? 'Keluar' : item.transactionType || '-'),
+                status: item.status,
+                dokumen: item.documentId || '-',
+                user: this.usersMap[item.userId] || item.userId || '-',
+                _raw: item,
+            }));
+
+            // handle pagination
+            if (result.pagging) {
+                this. currentPage = result.pagging.currentPage;
+                this.totalPages = result.pagging.totalPage;
+                this.pageSize = result.pagging.size;
+                // fallback total items
+                this.totalItems = (result.pagging.totalItems !== undefined && result.pagging.totalItems !== null) ? result.pagging.totalItems : (result.pagging.totalPage * result.pagging.size);
+            }
+            
+          } catch (error) {
+            console.error('Gagal memuat data transaksi:', error);
+            this.$toast?.add?.({
+                severity: 'error',
+                summary: 'Gagal',
+                detail: error.message || 'Gagal memuat data transaksi',
+                life: 3000,
+            });
+          } finally {
+            this.loading = false;
+          }
+        },
+        onPage(event) {
+            // event.page is the new page index (0-based)
+            this.fetchTransactions(event.page);
+        },
+        onSort(event) {
+            this.sortField = event.sortField;
+            this.sortOrder = event.sortOrder;
+            this.fetchTransactions(0); // Reset ke halaman pertama saat di-sort
+        },
+        onFilter(event) {
+            this.fetchTransactions(0); // Reset ke halaman pertama saat filter berubah
+        },
         formatCurrency(value) {
             return new Intl.NumberFormat("id-ID", {
                 style: "currency",
@@ -129,23 +164,90 @@ export default {
                 params: { id: item.id },
             });
         },
+        setCancelled(item) {
+            this.tempData = item;
+            this.showCancelDialog = true;
+        },
+        async cancelItem() {
+            if (!this.tempData) return;
+
+            try {
+                await api.post(`/transactions/${this.tempData.transactionId}/set-cancelled`);
+
+                this.$toast?.add?.({
+                    severity: 'success',
+                    summary: 'Berhasil',
+                    detail: `Transaksi ${this.tempData.refNumber} berhasil dibatalkan`,
+                    life: 3000,
+                });
+
+                this.data = this.data.filter((t) => t.transactionId !== this.tempData.transactionId);
+                this.showCancelDialog = false;
+                this.tempData = null;
+            } catch (error) {
+                console.error('Gagal membatalkan transaksi:', error);
+                this.$toast?.add?.({
+                    severity: 'error',
+                    summary: 'Gagal',
+                    detail: error.message || 'Gagal membatalkan transaksi',
+                    life: 3000,
+                });
+            }
+        },
         confirmDelete(item) {
             this.tempData = item;
             this.showDeleteDialog = true;
         },
-        deleteItem() {
+        async deleteItem() {
             if (!this.tempData) return;
 
-            this.data = this.data.filter((item) => item.id !== this.tempData.id);
-            this.showDeleteDialog = false;
-            this.tempData = null;
+            try {
+                await api.delete(`/transactions/${this.tempData.transactionId}`);
 
-            this.$toast?.add?.({
-                severity: "success",
-                summary: "Berhasil",
-                detail: "Data transaksi dihapus",
-                life: 2500,
+                this.$toast?.add?.({
+                    severity: 'success',
+                    summary: 'Berhasil',
+                    detail: `Transaksi ${this.tempData.refNumber} berhasil dihapus`,
+                    life: 3000,
+                });
+
+                this.data = this.data.filter((t) => t.transactionId !== this.tempData.transactionId);
+                this.showDeleteDialog = false;
+                this.tempData = null;
+            } catch (error) {
+                console.error('Gagal menghapus transaksi:', error);
+                this.$toast?.add?.({
+                    severity: 'error',
+                    summary: 'Gagal',
+                    detail: error.message || 'Gagal menghapus transaksi',
+                    life: 3000,
+                });
+            }
+        },
+        getActionMenuItems(data) {
+            const items = [];
+
+            if (data.status === 'CANCELLED') {
+                items.push({
+                    label: 'Hapus Transaksi',
+                    icon: 'pi pi-trash',
+                    command: () => this.confirmDelete(data),
+                });
+            } else {
+                items.push({
+                    label: 'Set Cancelled',
+                    icon: 'pi pi-times',
+                    command: () => this.setCancelled(data),
+                });
+            }
+
+            items.push({
+                label: 'Detail',
+                icon: 'pi pi-eye',
+                command: () => this.viewDetail(data),
             });
+
+            return items;
         },
         viewDetail(item) {
             this.$router.push({
@@ -206,11 +308,17 @@ export default {
         <DataTable
             class="barang-datatable font-farro text-sm"
             :value="data"
+            lazy
+            removableSort
+            :totalRecords="totalItems"
+            @page="onPage"
+            @sort="onSort"
+            @filter="onFilter"
             v-model:filters="filters"
             filterDisplay="row"
             :paginator="true"
-            :rows="10"
-            dataKey="id"
+            :rows="pageSize"
+            dataKey="transactionId"
             :loading="loading"
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
             currentPageReportTemplate="Menampilkan {first} ke {last} dari {totalRecords} total data"
@@ -250,15 +358,15 @@ export default {
             <Column
                 :pt="columnPt"
                 class="font-farro text-md"
-                field="no_invoice"
-                header="No Invoice"
+                field="refNumber"
+                header="Reference Number"
                 sortable
                 filter
                 :showFilterMenu="false"
-                filterPlaceholder="Cari no invoice..."
+                filterPlaceholder="Cari reference number..."
                 style="min-width: 15rem"
             >
-                <template #body="{ data }">{{ data.no_invoice }}</template>
+                <template #body="{ data }">{{ data.refNumber }}</template>
                 <template #filter="{ filterModel, filterCallback }">
                     <input
                         v-model="filterModel.value"
@@ -273,19 +381,60 @@ export default {
             <Column
                 :pt="columnPt"
                 class="font-farro text-md"
+                field="sumber"
+                header="Sumber"
+                sortable
+                filter
+                :showFilterMenu="false"
+                filterPlaceholder="Cari sumber..."
+                style="min-width: 10rem"
+            >
+                <template #body="{ data }">{{ data.sumber }}</template>
+                <template #filter="{ filterModel, filterCallback }">
+                    <Select
+                        v-model="filterModel.value"
+                        :options="sumberOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        @change="filterCallback()"
+                        placeholder="Pilih sumber"
+                        class="font-farro"
+                        showClear
+                        :pt="{
+                        root: {
+                            class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
+                        },
+                        label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
+                        dropdown: { class: '!text-gray-400 !bg-white' },
+                        overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
+                        listContainer: { class: 'bg-white' },
+                        list: { class: '!bg-white' },
+                        option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
+                        optionLabel: { class: '!text-black' },
+                        emptyMessage: { class: '!text-black !bg-white' },
+                        }"
+                    />
+                </template>
+            </Column>
+
+            <Column
+                :pt="columnPt"
+                class="font-farro text-md"
                 field="jenis"
-                header="Jenis Transaksi"
+                header="Jenis"
                 sortable
                 filter
                 :showFilterMenu="false"
                 filterPlaceholder="Cari jenis..."
                 style="min-width: 10rem"
             >
-                <template class #body="{ data }">{{ data.jenis }}</template>
+                <template #body="{ data }">{{ data.jenis }}</template>
                 <template #filter="{ filterModel, filterCallback }">
                     <Select
                         v-model="filterModel.value"
                         :options="jenisOptions"
+                        optionLabel="label"
+                        optionValue="value"
                         @change="filterCallback()"
                         placeholder="Pilih jenis"
                         class="font-farro"
@@ -310,44 +459,21 @@ export default {
             <Column
                 :pt="columnPt"
                 class="font-farro text-md"
-                field="total_transaksi"
-                header="Total Transaksi"
+                field="status"
+                header="Status"
                 sortable
                 filter
                 :showFilterMenu="false"
-                filterPlaceholder="Cari total transaksi..."
+                filterPlaceholder="Cari status..."
                 style="min-width: 15rem"
             >
-                <template #body="{ data }">{{ formatCurrency(data.total_transaksi) }}</template>
+                <template #body="{ data }">{{ data.status }}</template>
                 <template #filter="{ filterModel, filterCallback }">
                     <input
                         v-model="filterModel.value"
                         type="text"
                         class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Cari total transaksi..."
-                        @input="filterCallback()"
-                    />
-                </template>
-            </Column>
-
-            <Column
-                :pt="columnPt"
-                class="font-farro text-md"
-                field="dokumen"
-                header="Dokumen"
-                sortable
-                filter
-                :showFilterMenu="false"
-                filterPlaceholder="Cari dokumen..."
-                style="min-width: 15rem"
-            >
-                <template #body="{ data }">{{ data.dokumen }}</template>
-                <template #filter="{ filterModel, filterCallback }">
-                    <input
-                        v-model="filterModel.value"
-                        type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Cari dokumen..."
+                        placeholder="Cari status..."
                         @input="filterCallback()"
                     />
                 </template>
@@ -400,49 +526,12 @@ export default {
                     itemLabel: { class: 'font-farro text-gray-700' },
                     itemIcon: { class: 'text-gray-700' },
                     }"
-                    :model="[
-                    {
-                        label: 'Edit',
-                        icon: 'pi pi-pencil',
-                        command: () => editItem(data),
-                    },
-                    {
-                        label: 'Detail',
-                        icon: 'pi pi-eye',
-                        command: () => viewDetail(data),
-                    },
-                    ]"
+                    :model="getActionMenuItems(data)"
                 />
                 </template>
             </Column>
         </DataTable>
     </div>
-
-    <Dialog
-        v-model:visible="showDeleteDialog"
-        header="Hapus Barang"
-        :style="{ width: '25rem' }"
-    >
-        <span class="text-surface-500 block mb-8">
-            Apakah Anda yakin ingin menghapus transaksi <strong>{{ tempData?.no_invoice }}</strong>?
-        </span>
-        <div class="flex justify-end gap-2">
-            <Button
-                type="button"
-                label="Batal"
-                severity="secondary"
-                @click="showDeleteDialog = false"
-            ></Button>
-            <button
-                type="button"
-                @click="deleteItem"
-                class="rounded-lg btn-primary px-6 text-white hover:bg-primary-emphasis disabled:border-gray-200 disabled:bg-gray-200"
-                :disabled="loading"
-            >
-                <i class="pi pi-trash mr-2"></i>Hapus
-            </button>
-        </div>
-    </Dialog>
 
     <!-- ── Import File Dialog ── -->
     <Dialog
@@ -546,6 +635,32 @@ export default {
                 @click="doImport"
             >
                 <i class="pi pi-upload text-xs"></i> Import
+            </button>
+        </div>
+    </Dialog>
+
+    <!-- set cancel -->
+    <Dialog v-model:visible="showCancelDialog" header="Batalkan Transaksi" :style="{ width: '25rem' }">
+        <span class="text-surface-500 block mb-8">
+            Apakah Anda yakin ingin membatalkan transaksi <strong>{{ tempData?.refNumber }}</strong>?
+        </span>
+        <div class="flex justify-end gap-2">
+            <Button type="button" label="Tidak" severity="secondary" @click="showCancelDialog = false"></Button>
+            <button type="button" @click="cancelItem" class="rounded-lg bg-danger px-6 text-white hover:bg-danger-dark disabled:border-gray-200 disabled:bg-gray-200" :disabled="loading">
+                <i class="pi pi-trash mr-2"></i>Ya, Batalkan
+            </button>
+        </div>
+    </Dialog>
+
+    <!-- hapus transaksi -->
+    <Dialog v-model:visible="showDeleteDialog" header="Hapus Transaksi" :style="{ width: '25rem' }">
+        <span class="text-surface-500 block mb-8">
+            Apakah Anda yakin ingin menghapus transaksi <strong>{{ tempData?.refNumber }}</strong>? Transaksi ini akan dihapus secara permanen.
+        </span>
+        <div class="flex justify-end gap-2">
+            <Button type="button" label="Tidak" severity="secondary" @click="showDeleteDialog = false"></Button>
+            <button type="button" @click="deleteItem" class="rounded-lg bg-danger px-6 text-white hover:bg-danger-dark disabled:border-gray-200 disabled:bg-gray-200" :disabled="loading">
+                <i class="pi pi-trash mr-2"></i>Ya, Hapus
             </button>
         </div>
     </Dialog>

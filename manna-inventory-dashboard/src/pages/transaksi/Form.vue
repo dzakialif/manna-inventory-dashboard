@@ -1,5 +1,6 @@
 <script>
 import Select from "primevue/select";
+import { api } from "@/utils/api";
 
 export default {
     components: {
@@ -8,17 +9,11 @@ export default {
     data() {
         return {
             form: this.getDefaultForm(),
-            jenisOptions: ["Masuk", "Keluar", "Opname"],
-            barangOptions: [
-                { nama: "Moiaa Swiss Choco 1000 grm", harga: 15000000 },
-                { nama: "Moiaa Mango 1000 grm", harga: 800000 },
-                { nama: "SBC Cappucino Original 1000 grm", harga: 1200000 },
-                { nama: "Moiaa Strawberry 1000 grm", harga: 2500000 },
-                { nama: "SBC Swiss Choco 1000 grm", harga: 1500000 },
-                { nama: "Moiaa Mango 200 grm", harga: 750000 },
-                { nama: "SBC Green Tea 500 grm", harga: 1800000 },
-                { nama: "Topping Cheese Cream 500 grm", harga: 4500000 },
+            jenisOptions: [
+                { label: "Masuk", value: "IN" },
+                { label: "Keluar", value: "OUT" },
             ],
+            barangOptions: [],
         };
     },
     computed: {
@@ -36,7 +31,9 @@ export default {
         },
     },
     mounted() {
-        this.initializeForm();
+        this.fetchProducts().then(() => {
+            this.initializeForm();
+        });
     },
     methods: {
         getDefaultForm() {
@@ -49,10 +46,29 @@ export default {
         },
         getDefaultItem() {
             return {
-                nama_barang: null,
+                productId: null,
                 quantity: 1,
                 harga: 0,
             };
+        },
+        async fetchProducts() {
+            try {
+                const response = await api.get("/products?size=1000");
+                const products = response.data?.data || [];
+                this.barangOptions = products.map(p => ({
+                    productId: p.productId,
+                    nama: p.name,
+                    price: p.price || 0
+                }));
+            } catch (error) {
+                console.error("Gagal mengambil data barang:", error);
+                this.$toast?.add?.({
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal memuat daftar barang.",
+                    life: 3000,
+                });
+            }
         },
         initializeForm() {
             if (!this.isEditMode) {
@@ -91,10 +107,10 @@ export default {
             }
         },
         onBarangSelect(item) {
-            if (item.nama_barang) {
-                const barang = this.barangOptions.find((b) => b.nama === item.nama_barang);
+            if (item.productId) {
+                const barang = this.barangOptions.find((b) => b.productId === item.productId);
                 if (barang) {
-                    item.harga = barang.harga;
+                    item.harga = barang.price || 0;
                 }
             } else {
                 item.harga = 0;
@@ -118,21 +134,63 @@ export default {
                 minimumFractionDigits: 0,
             }).format(value || 0);
         },
-        doSubmit() {
-            this.$toast?.add?.({
-                severity: "success",
-                summary: "Berhasil",
-                detail: this.isEditMode
-                    ? `Perubahan transaksi ${this.form.no_invoice} berhasil disimpan`
-                    : `Transaksi ${this.form.no_invoice} berhasil dibuat`,
-                life: 3000,
-            });
-
-            if (this.isEditMode) {
-                sessionStorage.removeItem("transaksi_edit_draft");
+        async doSubmit() {
+            let userId = null;
+            try {
+                const userJson = localStorage.getItem('user');
+                if (userJson) {
+                    const parsed = JSON.parse(userJson);
+                    userId = parsed.userId || parsed.id || null;
+                }
+            } catch (e) {
+                console.error("Gagal mendapatkan user ID:", e);
+            }
+            if (!userId) {
+                userId = "550e8400-e29b-41d4-a716-446655440000"; // fallback
             }
 
-            this.$router.push({ name: "transaksi" });
+            const payload = {
+                userId: userId,
+                referenceNumber: this.form.no_invoice,
+                date: this.form.tanggal,
+                periodStart: this.form.tanggal,
+                periodEnd: this.form.tanggal,
+                transactionType: this.form.jenis,
+                items: this.form.items.map((item) => ({
+                    productId: item.productId,
+                    quantity: Number(item.quantity) || 0,
+                    price: Number(item.harga) || 0,
+                })),
+            };
+
+            try {
+                if (this.isEditMode) {
+                    this.$toast?.add?.({
+                        severity: "success",
+                        summary: "Berhasil",
+                        detail: `Perubahan transaksi ${this.form.no_invoice} berhasil disimpan (UI Only)`,
+                        life: 3000,
+                    });
+                    sessionStorage.removeItem("transaksi_edit_draft");
+                } else {
+                    await api.post("/transactions", payload);
+                    this.$toast?.add?.({
+                        severity: "success",
+                        summary: "Berhasil",
+                        detail: `Transaksi ${this.form.no_invoice} berhasil dibuat`,
+                        life: 3000,
+                    });
+                }
+                this.$router.push({ name: "transaksi" });
+            } catch (error) {
+                console.error("Gagal menyimpan transaksi:", error);
+                this.$toast?.add?.({
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal menyimpan transaksi.",
+                    life: 3000,
+                });
+            }
         },
     },
 };
@@ -176,6 +234,8 @@ export default {
                         <Select
                             v-model="form.jenis"
                             :options="jenisOptions"
+                            optionLabel="label"
+                            optionValue="value"
                             placeholder="Pilih jenis transaksi"
                             class="font-farro w-full"
                             showClear
@@ -235,10 +295,10 @@ export default {
                                 <!-- Nama Barang -->
                                 <td class="px-4 py-3">
                                     <Select
-                                        v-model="item.nama_barang"
+                                        v-model="item.productId"
                                         :options="barangOptions"
                                         optionLabel="nama"
-                                        optionValue="nama"
+                                        optionValue="productId"
                                         placeholder="Pilih barang..."
                                         class="font-farro w-full"
                                         showClear
@@ -247,7 +307,7 @@ export default {
                                         root: {
                                             class: 'flex items-center !bg-white !text-black !border !border-gray-300 !rounded-lg !h-10 !w-full focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
                                         },
-                                        label: { class: item.nama_barang ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
+                                        label: { class: item.productId ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
                                         dropdown: { class: '!text-gray-500 !bg-white' },
                                         overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
                                         listContainer: { class: 'bg-white' },

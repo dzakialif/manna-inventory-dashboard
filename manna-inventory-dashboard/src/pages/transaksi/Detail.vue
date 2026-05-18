@@ -1,4 +1,6 @@
 <script>
+import { api } from "@/utils/api";
+
 export default {
     data() {
         return {
@@ -31,14 +33,13 @@ export default {
             return this.transaksi?.items?.reduce((sum, item) => sum + (item.jumlah * item.harga), 0) ?? 0;
         },
         jenisLabel() {
-            const map = { Masuk: "Barang Masuk", Keluar: "Barang Keluar", Opname: "Stock Opname" };
+            const map = { IN: "Barang Masuk", OUT: "Barang Keluar" };
             return map[this.transaksi?.jenis] ?? this.transaksi?.jenis ?? "-";
         },
         jenisBadgeClass() {
             const map = {
-                Masuk: "bg-green-100 text-green-700 border border-green-200",
-                Keluar: "bg-red-100 text-red-700 border border-red-200",
-                Opname: "bg-blue-100 text-blue-700 border border-blue-200",
+                IN: "bg-green-100 text-green-700 border border-green-200",
+                OUT: "bg-red-100 text-red-700 border border-red-200",
             };
             return map[this.transaksi?.jenis] ?? "bg-gray-100 text-gray-600";
         },
@@ -47,50 +48,99 @@ export default {
         this.loadData();
     },
     methods: {
-        loadData() {
+        async loadData() {
             this.loading = true;
-            // Dummy data — replace with API call
-            setTimeout(() => {
-                this.transaksi = {
-                    id: 1,
-                    tanggal: "2026-04-03",
-                    no_invoice: "IN-INV-202604-0001",
-                    jenis: "Masuk",
-                    dokumen: "Faktur Penjualan",
-                    user: "Rina - Admin Gudang",
-                    items: [
-                        {
-                            kode_barang: "BRG001",
-                            nama: "Moiaa Swiss Choco 1000 grm",
-                            kategori: "Moiaa",
-                            jumlah: 10,
-                            harga: 15000000,
-                        },
-                        {
-                            kode_barang: "BRG002",
-                            nama: "Moiaa Mango 1000 grm",
-                            kategori: "Moiaa",
-                            jumlah: 5,
-                            harga: 800000,
-                        },
-                        {
-                            kode_barang: "BRG003",
-                            nama: "SBC Cappucino Original 1000 grm",
-                            kategori: "SBC",
-                            jumlah: 8,
-                            harga: 1200000,
-                        },
-                        {
-                            kode_barang: "BRG007",
-                            nama: "SBC Green Tea 500 grm",
-                            kategori: "SBC",
-                            jumlah: 3,
-                            harga: 1800000,
-                        },
-                    ],
-                };
+            const transactionId = this.$route.params.id;
+
+            try {
+                // 1. Fetch users list
+                let usersMap = {};
+                try {
+                    const userResponse = await api.get('/users?size=1000');
+                    const users = userResponse.data?.data || [];
+                    users.forEach(u => {
+                        usersMap[u.userId] = u.name;
+                    });
+                } catch (e) {
+                    console.error("Gagal memuat list user:", e);
+                }
+
+                // 2. Fetch categories list
+                let categoriesMap = {};
+                try {
+                    const catResponse = await api.get('/categories?size=1000');
+                    const categories = catResponse.data?.data || [];
+                    categories.forEach(c => {
+                        categoriesMap[c.categoryId] = c.name;
+                    });
+                } catch (e) {
+                    console.error("Gagal memuat list kategori:", e);
+                }
+
+                // 3. Fetch products list to resolve productCode and category name
+                let productsMap = {};
+                try {
+                    const productsResponse = await api.get('/products?size=1000');
+                    const productsList = productsResponse.data?.data || [];
+                    productsList.forEach(p => {
+                        productsMap[p.productId] = {
+                            code: p.productCode || "-",
+                            category: categoriesMap[p.categoryId] || "Barang"
+                        };
+                    });
+                } catch (e) {
+                    console.error("Gagal memuat list produk:", e);
+                }
+
+                // 4. Fetch the transaction detail
+                const response = await api.get(`/transactions/${transactionId}`);
+                const tx = response.data?.data;
+
+                if (tx) {
+                    // Resolve document name
+                    let docName = "-";
+                    if (tx.documentId) {
+                        try {
+                            const docResponse = await api.get(`/documents/${tx.documentId}`);
+                            if (docResponse.data?.data?.docName) {
+                                docName = docResponse.data.data.docName;
+                            }
+                        } catch (e) {
+                            console.error("Gagal memuat detail dokumen:", e);
+                        }
+                    }
+
+                    this.transaksi = {
+                        id: tx.transactionId,
+                        tanggal: tx.date || "",
+                        no_invoice: tx.referenceNumber || "-",
+                        jenis: tx.transactionType,
+                        dokumen: docName,
+                        user: usersMap[tx.userId] || tx.userId || "-",
+                        items: (tx.details || []).map((item) => {
+                            const prodInfo = productsMap[item.productId] || { code: "-", category: "Barang" };
+                            return {
+                                productId: item.productId,
+                                kode_barang: prodInfo.code,
+                                nama: item.productName || "-",
+                                kategori: prodInfo.category,
+                                jumlah: item.quantity || 0,
+                                harga: item.price || 0,
+                            };
+                        }),
+                    };
+                }
+            } catch (error) {
+                console.error("Gagal memuat detail transaksi:", error);
+                this.$toast?.add?.({
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal memuat detail transaksi.",
+                    life: 3000,
+                });
+            } finally {
                 this.loading = false;
-            }, 300);
+            }
         },
         formatCurrency(value) {
             return new Intl.NumberFormat("id-ID", {
