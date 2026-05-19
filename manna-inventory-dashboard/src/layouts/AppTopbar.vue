@@ -10,57 +10,7 @@ export default {
     data() {
         return {
             userProfile: null,
-            notifications: [
-                {
-                    type: "warning",
-                    title: "Stok menipis",
-                    message: "Beberapa item perlu segera di-restock.",
-                    time: "5 menit lalu",
-                    read: false,
-                },
-                {
-                    type: "success",
-                    title: "Barang masuk baru",
-                    message: "Transaksi barang masuk telah berhasil disimpan.",
-                    time: "22 menit lalu",
-                    read: false,
-                },
-                {
-                    type: "info",
-                    title: "Permintaan pembelian",
-                    message: "Ada permintaan pembelian baru yang menunggu persetujuan.",
-                    time: "1 jam lalu",
-                    read: false,
-                },
-                {
-                    type: "danger",
-                    title: "Stok kritis",
-                    message: "Beberapa barang sudah masuk batas minimum stok.",
-                    time: "2 jam lalu",
-                    read: false,
-                },
-                {
-                    type: "info",
-                    title: "Laporan harian siap",
-                    message: "Ringkasan aktivitas gudang hari ini telah tersedia.",
-                    time: "Kemarin",
-                    read: true,
-                },
-                {
-                    type: "info",
-                    title: "Pembaruan harga",
-                    message: "Ada perubahan harga pada beberapa item persediaan.",
-                    time: "Kemarin",
-                    read: true,
-                },
-                {
-                    type: "success",
-                    title: "Stock opname selesai",
-                    message: "Proses stock opname hari ini sudah selesai.",
-                    time: "2 hari lalu",
-                    read: true,
-                },
-            ],
+            notifications: [],
             show_dialog: {
                 profile: false,
                 notifications: false,
@@ -190,16 +140,39 @@ export default {
         const layout = useLayout();
         this.toggleMenu = layout.toggleMenu;
         this.fetchUserProfile();
+        this.fetchNotifications();
+
+        this.notifInterval = setInterval(() => {
+            this.fetchNotifications();
+        }, 30000);
 
         this._notifClickOutside = this.handleNotificationClickOutside.bind(this);
         document.addEventListener("mousedown", this._notifClickOutside);
     },
     unmounted() {
         document.removeEventListener("mousedown", this._notifClickOutside);
+        if (this.notifInterval) {
+            clearInterval(this.notifInterval);
+        }
     },
     methods: {
+        getUserId() {
+            const userJson = localStorage.getItem('user');
+            if (userJson) {
+                try {
+                    const parsed = JSON.parse(userJson);
+                    return parsed.userId || parsed.id || '';
+                } catch {
+                    return '';
+                }
+            }
+            return '';
+        },
         openNotificationDialog() {
             this.show_dialog.notifications = !this.show_dialog.notifications;
+            if (this.show_dialog.notifications) {
+                this.fetchNotifications();
+            }
         },
         closeNotificationPanel() {
             this.show_dialog.notifications = false;
@@ -216,23 +189,60 @@ export default {
                 this.show_dialog.notifications = false;
             }
         },
-        markNotificationAsRead(notification) {
-            if (notification.read) return;
-            notification.read = true;
-        },
-        markAllNotificationsAsRead() {
-            this.notifications = this.notifications.map((notification) => ({
-                ...notification,
-                read: true,
-            }));
+        async fetchNotifications() {
+            const userId = this.getUserId();
+            if (!userId) return;
 
-            this.$toast.add({
-                severity: "success",
-                summary: "Semua notifikasi dibaca",
-                life: 2500,
-            });
+            try {
+                const response = await api.get(`/notifications?userId=${userId}&page=0&size=10`);
+                this.notifications = response.data?.data || [];
+            } catch (error) {
+                console.error("Gagal mengambil notifikasi:", error);
+            }
+        },
+        async markNotificationAsRead(notification) {
+            if (notification.read) return;
+            const userId = this.getUserId();
+            if (!userId) return;
+
+            try {
+                await api.post(`/notifications/${notification.notificationId}/read?userId=${userId}`);
+                notification.read = true;
+            } catch (error) {
+                console.error("Gagal menandai notifikasi dibaca:", error);
+            }
+        },
+        async markAllNotificationsAsRead() {
+            const userId = this.getUserId();
+            if (!userId) return;
+
+            try {
+                await api.post(`/notifications/read-all?userId=${userId}&page=0&size=10`);
+                this.notifications = this.notifications.map((notification) => ({
+                    ...notification,
+                    read: true,
+                }));
+
+                this.$toast.add({
+                    severity: "success",
+                    summary: "Semua notifikasi dibaca",
+                    life: 2500,
+                });
+            } catch (error) {
+                console.error("Gagal menandai semua notifikasi dibaca:", error);
+                this.$toast.add({
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal menandai semua notifikasi dibaca",
+                    life: 3000,
+                });
+            }
         },
         notificationIcon(type) {
+            const t = (type || '').toUpperCase();
+            if (t === 'ROP_ALERT') return 'mdi:alert-circle';
+            if (t === 'SS_ALERT') return 'mdi:alert';
+
             const map = {
                 warning: "mdi:alert-circle",
                 success: "mdi:check-circle",
@@ -240,6 +250,42 @@ export default {
                 danger: "mdi:alert",
             };
             return map[type] || "mdi:bell";
+        },
+        getNotifClass(type) {
+            const t = (type || '').toUpperCase();
+            if (t === 'ROP_ALERT') return 'warning';
+            if (t === 'SS_ALERT') return 'danger';
+            return type || 'info';
+        },
+        formatNotifTime(dateString) {
+            if (!dateString) return '';
+            try {
+                const cleanString = dateString.replace(' ', 'T');
+                const date = new Date(cleanString);
+                if (isNaN(date.getTime())) {
+                    return dateString;
+                }
+                const now = new Date();
+                const diffMs = now - date;
+                const diffSecs = Math.floor(diffMs / 1000);
+                const diffMins = Math.floor(diffSecs / 60);
+                const diffHours = Math.floor(diffMins / 60);
+                const diffDays = Math.floor(diffHours / 24);
+
+                if (diffSecs < 60) return 'Baru saja';
+                if (diffMins < 60) return `${diffMins} menit lalu`;
+                if (diffHours < 24) return `${diffHours} jam lalu`;
+                if (diffDays === 1) return 'Kemarin';
+                if (diffDays < 7) return `${diffDays} hari lalu`;
+
+                return new Intl.DateTimeFormat('id-ID', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                }).format(date);
+            } catch {
+                return dateString;
+            }
         },
         async fetchUserProfile() {
             try {
@@ -546,19 +592,19 @@ export default {
                                 <div class="notif-panel-body">
                                     <button
                                         v-for="(notification, index) in notifications"
-                                        :key="`${notification.title}-${index}`"
+                                        :key="notification.notificationId || index"
                                         type="button"
                                         class="notif-item"
                                         :class="{ 'notif-item--unread': !notification.read }"
                                         @click="markNotificationAsRead(notification)"
                                     >
-                                        <span class="notif-icon-wrap" :class="`notif-icon--${notification.type}`">
+                                        <span class="notif-icon-wrap" :class="`notif-icon--${getNotifClass(notification.type)}`">
                                             <Icon :icon="notificationIcon(notification.type)" class="text-base" />
                                         </span>
                                         <div class="notif-content">
                                             <div class="notif-top-row">
                                                 <span class="notif-title">{{ notification.title }}</span>
-                                                <span class="notif-time">{{ notification.time }}</span>
+                                                <span class="notif-time">{{ formatNotifTime(notification.createdAt) }}</span>
                                             </div>
                                             <p class="notif-message">{{ notification.message }}</p>
                                         </div>

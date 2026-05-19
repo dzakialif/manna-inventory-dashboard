@@ -24,7 +24,6 @@ export default {
         stok: { value: null, matchMode: 'contains' },
         satuan: { value: null, matchMode: 'contains' },
         rasa: { value: null, matchMode: 'contains' },
-        terakhir_update: { value: null, matchMode: 'contains' },
       },
       sortField: null,
       sortOrder: null,
@@ -118,7 +117,6 @@ export default {
           stockStatus: item.stock?.status || '-',
           satuan: item.unit,
           rasa: item.flavors,
-          terakhir_update: this.formatDate(item.stock?.lastUpdated),
           // Simpan data mentah untuk keperluan edit
           _raw: item,
         }));
@@ -572,29 +570,6 @@ export default {
             optionLabel: { class: '!text-black' },
             emptyMessage: { class: '!text-black !bg-white' },
             }"
-          />
-        </template>
-      </Column>
-
-      <Column
-        :pt="columnPt"
-        class="font-farro text-md"
-        field="terakhir_update"
-        header="Terakhir Update"
-        sortable
-        filter
-        :showFilterMenu="false"
-        filterPlaceholder="Cari terakhir update..."
-        style="min-width: 12rem"
-      >
-        <template #body="{ data }">{{ data.terakhir_update }}</template>
-        <template #filter="{ filterModel, filterCallback }">
-          <input
-            v-model="filterModel.value"
-            type="text"
-            class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Cari terakhir update..."
-            @input="filterCallback()"
           />
         </template>
       </Column>

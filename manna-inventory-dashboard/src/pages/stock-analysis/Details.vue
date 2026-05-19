@@ -1,122 +1,15 @@
 <script>
+import { api } from "@/utils/api";
+
 export default {
     data() {
         return {
             barang: {
-                kode_barang: "BRG001",
-                nama: "Moiaa Swiss Choco 1000 grm",
-                kategori: "Kategori A"
+                kode_barang: "-",
+                nama: "-",
+                kategori: "-"
             },
-            data: [
-                {
-                    id: 1,
-                    bulan: "Januari",
-                    tahun: "2024",
-                    stok_aktual: 150,
-                    forecast: 180,
-                    safety_stock: 50,
-                    reorder_point: 100,
-                },
-                {
-                    id: 2,
-                    bulan: "Februari",
-                    tahun: "2024",
-                    stok_aktual: 220,
-                    forecast: 250,
-                    safety_stock: 60,
-                    reorder_point: 120,
-                },
-                {
-                    id: 3,
-                    bulan: "Maret",
-                    tahun: "2024",
-                    stok_aktual: 180,
-                    forecast: 210,
-                    safety_stock: 55,
-                    reorder_point: 110,
-                },
-                {
-                    id: 4,
-                    bulan: "April",
-                    tahun: "2024",
-                    stok_aktual: 340,
-                    forecast: 380,
-                    safety_stock: 80,
-                    reorder_point: 150,
-                },
-                {
-                    id: 5,
-                    bulan: "Mei",
-                    tahun: "2024",
-                    stok_aktual: 290,
-                    forecast: 320,
-                    safety_stock: 75,
-                    reorder_point: 140,
-                },
-                {
-                    id: 6,
-                    bulan: "Juni",
-                    tahun: "2024",
-                    stok_aktual: 250,
-                    forecast: 280,
-                    safety_stock: 70,
-                    reorder_point: 130,
-                },
-                {
-                    id: 7,
-                    bulan: "Juli",
-                    tahun: "2024",
-                    stok_aktual: 120,
-                    forecast: 150,
-                    safety_stock: 45,
-                    reorder_point: 90,
-                },
-                {
-                    id: 8,
-                    bulan: "Agustus",
-                    tahun: "2024",
-                    stok_aktual: 160,
-                    forecast: 190,
-                    safety_stock: 52,
-                    reorder_point: 105,
-                },
-                {
-                    id: 9,
-                    bulan: "September",
-                    tahun: "2024",
-                    stok_aktual: 310,
-                    forecast: 350,
-                    safety_stock: 78,
-                    reorder_point: 145,
-                },
-                {
-                    id: 10,
-                    bulan: "Oktober",
-                    tahun: "2024",
-                    stok_aktual: 275,
-                    forecast: 310,
-                    safety_stock: 72,
-                    reorder_point: 135,
-                },
-                {
-                    id: 11,
-                    bulan: "November",
-                    tahun: "2024",
-                    stok_aktual: 265,
-                    forecast: 295,
-                    safety_stock: 71,
-                    reorder_point: 132,
-                },
-                {
-                    id: 12,
-                    bulan: "Desember",
-                    tahun: "2024",
-                    stok_aktual: 320,
-                    forecast: 360,
-                    safety_stock: 82,
-                    reorder_point: 155,
-                },
-            ],
+            data: [],
             loading: false,
             columnPt: {
                 headerCell: {
@@ -135,20 +28,72 @@ export default {
         };
     },
     computed: {
-        rataStok() {
-            return Math.round(this.data.reduce((total, item) => total + item.stok_aktual, 0) / this.data.length);
-        },
         rataForecast() {
+            if (!this.data.length) return 0;
             return Math.round(this.data.reduce((total, item) => total + item.forecast, 0) / this.data.length);
         },
         rataSafetyStock() {
+            if (!this.data.length) return 0;
             return Math.round(this.data.reduce((total, item) => total + item.safety_stock, 0) / this.data.length);
         },
         rataReorderPoint() {
+            if (!this.data.length) return 0;
             return Math.round(this.data.reduce((total, item) => total + item.reorder_point, 0) / this.data.length);
         }
     },
+    async mounted() {
+        await this.fetchForecastDetails();
+    },
     methods: {
+        async fetchForecastDetails() {
+            this.loading = true;
+            try {
+                const productId = this.$route.params.id;
+                const response = await api.get(`/analysis/forecast/${productId}`);
+                const result = response.data;
+                const detailData = result.data;
+                
+                this.barang = {
+                    kode_barang: detailData.productCode || '-',
+                    nama: detailData.productName || '-',
+                    kategori: detailData.abcCategory || '-'
+                };
+
+                const monthNames = {
+                    1: "Januari",
+                    2: "Februari",
+                    3: "Maret",
+                    4: "April",
+                    5: "Mei",
+                    6: "Juni",
+                    7: "Juli",
+                    8: "Agustus",
+                    9: "September",
+                    10: "Oktober",
+                    11: "November",
+                    12: "Desember"
+                };
+
+                this.data = (detailData.details || []).map((detail, idx) => ({
+                    id: idx + 1,
+                    bulan: monthNames[detail.month] || String(detail.month),
+                    tahun: String(detail.year),
+                    forecast: detail.forecastResult || 0,
+                    safety_stock: detail.safetyStock || 0,
+                    reorder_point: detail.reorderPoint || 0
+                }));
+            } catch (error) {
+                console.error("Gagal memuat detail analisis stok:", error);
+                this.$toast?.add?.({
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal memuat detail analisis stok",
+                    life: 3000,
+                });
+            } finally {
+                this.loading = false;
+            }
+        },
         formatNumber(value) {
             return new Intl.NumberFormat("id-ID").format(value);
         },
@@ -212,10 +157,6 @@ export default {
                 </h6>
                 <div class="space-y-3">
                     <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span class="font-farro text-sm text-gray-500">Stok Aktual</span>
-                        <span class="font-farro text-sm font-semibold text-gray-800">{{ formatNumber(rataStok) }} unit</span>
-                    </div>
-                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
                         <span class="font-farro text-sm text-gray-500">Forecast / Peramalan</span>
                         <span class="font-farro text-sm font-semibold text-gray-800">{{ formatNumber(rataForecast) }} unit</span>
                     </div>
@@ -268,17 +209,6 @@ export default {
                 style="min-width: 10rem"
             >
                 <template #body="{ data }">{{ data.tahun }}</template>
-            </Column>
-
-            <Column
-                :pt="columnPt"
-                class="font-farro text-md"
-                field="stok_aktual"
-                header="Stok Aktual"
-                sortable
-                style="min-width: 14rem"
-            >
-                <template #body="{ data }">{{ formatNumber(data.stok_aktual) }}</template>
             </Column>
 
             <Column

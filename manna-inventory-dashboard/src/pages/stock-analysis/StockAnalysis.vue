@@ -1,90 +1,31 @@
 <script>
+import { api } from "@/utils/api";
+import Select from "primevue/select";
+
 export default {
+    components: {
+        Select
+    },
     data() {
         return {
-            data: [
-                {
-                    id: 1,
-                    nama: "Moiaa Swiss Choco 1000grm",
-                    current_stock: 50,
-                    forecast: 40,
-                    safety_stock: 55,
-                    rop: 60,
-                    status: "Aman"
-                },
-                {
-                    id: 2,
-                    nama: "Moiaa Mango 1000grm",
-                    current_stock: 64,
-                    forecast: 45,
-                    safety_stock: 50,
-                    rop: 65,
-                    status: "Waspada"
-                },
-                {
-                    id: 3,
-                    nama: "SBC Cappucino Original 1000grm",
-                    current_stock: 74,
-                    forecast: 60,
-                    safety_stock: 65,
-                    rop: 78,
-                    status: "Waspada"
-                },
-                {
-                    id: 4,
-                    nama: "Moiaa Strawberry 1000grm",
-                    current_stock: 75,
-                    forecast: 58,
-                    safety_stock: 55,
-                    rop: 63,
-                    status: "Perlo Reorder"
-                },
-                {
-                    id: 5,
-                    nama: "SBC Swiss Choco 1000grm",
-                    current_stock: 55,
-                    forecast: 40,
-                    safety_stock: 55,
-                    rop: 60,
-                    status: "Perlo Reorder"
-                },
-                {
-                    id: 6,
-                    nama: "Moiaa Mango 200grm",
-                    current_stock: 68,
-                    forecast: 48,
-                    safety_stock: 50,
-                    rop: 65,
-                    status: "Aman"
-                },
-                {
-                    id: 7,
-                    nama: "SBC Green Tea 500grm",
-                    current_stock: 40,
-                    forecast: 37,
-                    safety_stock: 40,
-                    rop: 45,
-                    status: "Waspada"
-                },
-                {
-                    id: 8,
-                    nama: "Topping Cheese Cream 500grm",
-                    current_stock: 45,
-                    forecast: 37,
-                    safety_stock: 55,
-                    rop: 60,
-                    status: "Aman"
-                }
-            ],
+            data: [],
             loading: false,
+            currentPage: 0,
+            totalPages: 0,
+            pageSize: 10,
+            totalItems: 0,
             filters: {
-                nama: { value: null, matchMode: "contains" },
-                current_stock: { value: null, matchMode: "contains" },
-                forecast: { value: null, matchMode: "contains" },
-                safety_stock: { value: null, matchMode: "contains" },
-                rop: { value: null, matchMode: "contains" },
-                status: { value: null, matchMode: "contains" },
+                nama: { value: null, matchMode: "equals" },
+                status: { value: null, matchMode: "equals" },
             },
+            sortField: null,
+            sortOrder: null,
+            productOptions: [],
+            statusOptions: [
+                { label: "Aman", value: "Aman" },
+                { label: "Waspada", value: "Waspada" },
+                { label: "Perlu Reorder", value: "Perlu Reorder" }
+            ],
             columnPt: {
                 headerCell: {
                     class: "font-farro",
@@ -103,7 +44,98 @@ export default {
             tempData: null
         };
     },
+    async mounted() {
+        this.loading = true;
+        try {
+            await Promise.all([
+                this.fetchProductDropdown(),
+                this.fetchForecastData(0)
+            ]);
+        } catch (error) {
+            console.error("Gagal inisialisasi halaman:", error);
+        } finally {
+            this.loading = false;
+        }
+    },
     methods: {
+        async fetchProductDropdown() {
+            try {
+                const response = await api.get('/products/dropdown');
+                this.productOptions = response.data?.data || [];
+            } catch (error) {
+                console.error("Gagal memuat dropdown produk:", error);
+            }
+        },
+        async fetchForecastData(page = 0) {
+            this.loading = true;
+            try {
+                let queryParams = `page=${page}&size=${this.pageSize}`;
+
+                const f = this.filters;
+                if (f.nama.value !== null && f.nama.value !== '') {
+                    const prod = this.productOptions.find(p => p.value === f.nama.value);
+                    const productName = prod ? prod.label : f.nama.value;
+                    queryParams += `&productName=${encodeURIComponent(productName)}`;
+                }
+                if (f.status.value !== null && f.status.value !== '') {
+                    queryParams += `&status=${encodeURIComponent(f.status.value)}`;
+                }
+
+                if (this.sortField && this.sortOrder !== null) {
+                    let mappedSortField = this.sortField;
+                    if (this.sortField === 'nama') mappedSortField = 'productName';
+                    else if (this.sortField === 'current_stock') mappedSortField = 'currentStock';
+                    else if (this.sortField === 'forecast') mappedSortField = 'forecastResult';
+                    else if (this.sortField === 'safety_stock') mappedSortField = 'safetyStock';
+                    else if (this.sortField === 'rop') mappedSortField = 'reorderPoint';
+
+                    queryParams += `&sortBy=${mappedSortField}&sortDirection=${this.sortOrder === 1 ? 'asc' : 'desc'}`;
+                }
+
+                const response = await api.get(`/analysis/forecast?${queryParams}`);
+                const result = response.data;
+                this.data = (result.data || []).map((item) => ({
+                    id: item.productId,
+                    nama: item.productName,
+                    current_stock: item.currentStock,
+                    forecast: item.forecastResult,
+                    safety_stock: item.safetyStock,
+                    rop: item.reorderPoint,
+                    status: item.status === 'critical' ? 'Perlu Reorder' : item.status === 'warning' ? 'Waspada' : 'Aman',
+                    _raw: item
+                }));
+
+                if (result.pagging) {
+                    this.currentPage = result.pagging.currentPage;
+                    this.totalPages = result.pagging.totalPage;
+                    this.pageSize = result.pagging.size;
+                    this.totalItems = (result.pagging.totalItems !== undefined && result.pagging.totalItems !== null)
+                        ? result.pagging.totalItems
+                        : (result.pagging.totalPage * result.pagging.size);
+                }
+            } catch (error) {
+                console.error("Gagal memuat data analisis stok:", error);
+                this.$toast?.add?.({
+                    severity: "error",
+                    summary: "Gagal",
+                    detail: error.message || "Gagal memuat data analisis stok",
+                    life: 3000,
+                });
+            } finally {
+                this.loading = false;
+            }
+        },
+        onPage(event) {
+            this.fetchForecastData(event.page);
+        },
+        onSort(event) {
+            this.sortField = event.sortField;
+            this.sortOrder = event.sortOrder;
+            this.fetchForecastData(0);
+        },
+        onFilter(event) {
+            this.fetchForecastData(0);
+        },
         formatCurrency(value) {
             return new Intl.NumberFormat("id-ID", {
                 style: "currency",
@@ -137,8 +169,7 @@ export default {
         },
         toggle(event, itemId) {
             this.$refs[`menu_${itemId}`]?.toggle?.(event);
-        }
-        ,
+        },
         statusBadgeClass(status) {
             const base = "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold";
             if (!status) return `${base} bg-gray-100 text-gray-800`;
@@ -157,10 +188,16 @@ export default {
         <DataTable
             class="barang-datatable font-farro text-sm"
             :value="data"
+            lazy
+            removableSort
+            :totalRecords="totalItems"
+            @page="onPage"
+            @sort="onSort"
+            @filter="onFilter"
             v-model:filters="filters"
             filterDisplay="row"
             :paginator="true"
-            :rows="10"
+            :rows="pageSize"
             dataKey="id"
             :loading="loading"
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
@@ -188,12 +225,28 @@ export default {
             >
                 <template #body="{ data }">{{ data.nama }}</template>
                 <template #filter="{ filterModel, filterCallback }">
-                    <input
+                    <Select
                         v-model="filterModel.value"
-                        type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Cari nama barang..."
-                        @input="filterCallback()"
+                        :options="productOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        @change="filterCallback()"
+                        placeholder="Pilih nama barang"
+                        class="font-farro"
+                        showClear
+                        :pt="{
+                            root: {
+                                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
+                            },
+                            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
+                            dropdown: { class: '!text-gray-400 !bg-white' },
+                            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
+                            listContainer: { class: 'bg-white' },
+                            list: { class: '!bg-white' },
+                            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
+                            optionLabel: { class: '!text-black' },
+                            emptyMessage: { class: '!text-black !bg-white' },
+                        }"
                     />
                 </template>
             </Column>
@@ -204,23 +257,10 @@ export default {
                 field="current_stock"
                 header="Stok Saat Ini"
                 sortable
-                filter
-                :showFilterMenu="false"
-                filterPlaceholder="Cari stok..."
                 style="min-width: 8rem"
             >
                 <template #body="{ data }">{{ data.current_stock }}</template>
-                <template #filter="{ filterModel, filterCallback }">
-                    <input
-                        v-model="filterModel.value"
-                        type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Cari stok..."
-                        @input="filterCallback()"
-                    />
-                </template>
             </Column>
-
 
             <Column
                 :pt="columnPt"
@@ -228,21 +268,9 @@ export default {
                 field="forecast"
                 header="Forecast"
                 sortable
-                filter
-                :showFilterMenu="false"
-                filterPlaceholder="Cari forecast..."
                 style="min-width: 8rem"
             >
                 <template #body="{ data }">{{ data.forecast }}</template>
-                <template #filter="{ filterModel, filterCallback }">
-                    <input
-                        v-model="filterModel.value"
-                        type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Cari forecast..."
-                        @input="filterCallback()"
-                    />
-                </template>
             </Column>
 
             <Column
@@ -251,21 +279,9 @@ export default {
                 field="safety_stock"
                 header="Safety Stock"
                 sortable
-                filter
-                :showFilterMenu="false"
-                filterPlaceholder="Cari safety stock..."
                 style="min-width: 8rem"
             >
                 <template #body="{ data }">{{ data.safety_stock }}</template>
-                <template #filter="{ filterModel, filterCallback }">
-                    <input
-                        v-model="filterModel.value"
-                        type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Cari safety stock..."
-                        @input="filterCallback()"
-                    />
-                </template>
             </Column>
 
             <Column
@@ -274,21 +290,9 @@ export default {
                 field="rop"
                 header="ROP"
                 sortable
-                filter
-                :showFilterMenu="false"
-                filterPlaceholder="Cari ROP..."
                 style="min-width: 8rem"
             >
                 <template #body="{ data }">{{ data.rop }}</template>
-                <template #filter="{ filterModel, filterCallback }">
-                    <input
-                        v-model="filterModel.value"
-                        type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Cari ROP..."
-                        @input="filterCallback()"
-                    />
-                </template>
             </Column>
             
             <Column
@@ -308,12 +312,28 @@ export default {
                     </span>
                 </template>
                 <template #filter="{ filterModel, filterCallback }">
-                    <input
+                    <Select
                         v-model="filterModel.value"
-                        type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Cari status..."
-                        @input="filterCallback()"
+                        :options="statusOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        @change="filterCallback()"
+                        placeholder="Pilih status"
+                        class="font-farro"
+                        showClear
+                        :pt="{
+                            root: {
+                                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
+                            },
+                            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
+                            dropdown: { class: '!text-gray-400 !bg-white' },
+                            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
+                            listContainer: { class: 'bg-white' },
+                            list: { class: '!bg-white' },
+                            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
+                            optionLabel: { class: '!text-black' },
+                            emptyMessage: { class: '!text-black !bg-white' },
+                        }"
                     />
                 </template>
             </Column>
