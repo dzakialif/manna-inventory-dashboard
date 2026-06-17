@@ -12,6 +12,20 @@ export default {
         ReorderPointSummary,
         StatsWidget
     },
+    data() {
+        return {
+            selectedMonth: null,
+            selectedYear: null,
+        };
+    },
+    methods: {
+        handleFilterChange(filter) {
+            this.selectedMonth = filter.month;
+            this.selectedYear = filter.year;
+            console.log("Filter diterima di Dashboard:", filter);
+            // Anda bisa meneruskan ini ke komponen lain sebagai props jika diperlukan di masa mendatang
+        }
+    }
 };
 </script>
 <template>
@@ -19,7 +33,7 @@ export default {
         <StatsWidget />
 
         <div class="col-span-12">
-            <SummaryChart />
+            <SummaryChart @filter-change="handleFilterChange" />
         </div>
         <div class="col-span-6">
             <ABCAnalysis />

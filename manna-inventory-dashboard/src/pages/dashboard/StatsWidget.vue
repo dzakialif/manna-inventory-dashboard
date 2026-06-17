@@ -43,8 +43,8 @@ onMounted(() => {
     <div class="col-span-12 lg:col-span-6 xl:col-span-3">
         <div class="card h-full bg-white mb-0 transition duration-200 hover:scale-105">
             <div class="flex justify-between mb-4">
-                <div class="font-farro text-center">
-                    <span class="block text-black text-2xl font-bold mb-4">Total Barang</span>
+                <div class="font-farro text-left">
+                    <span class="block text-gray-500 font-medium text-sm mb-2">Total Barang</span>
                     <div class="text-black text-2xl font-bold">
                         <i v-if="loading" class="pi pi-spin pi-spinner"></i>
                         <span v-else>{{ formatNumber(summary.totalProducts) }}</span>
@@ -59,8 +59,8 @@ onMounted(() => {
     <div class="col-span-12 lg:col-span-6 xl:col-span-3">
         <div class="card h-full bg-white mb-0 transition duration-200 hover:scale-105">
             <div class="flex justify-between mb-4">
-                <div class="font-farro text-center">
-                    <span class="block text-black text-2xl font-bold mb-4">Total Stok</span>
+                <div class="font-farro text-left">
+                    <span class="block text-gray-500 font-medium text-sm mb-2">Total Stok</span>
                     <div class="text-black text-2xl font-bold">
                         <i v-if="loading" class="pi pi-spin pi-spinner"></i>
                         <span v-else>{{ formatNumber(summary.totalStock) }}</span>
@@ -75,8 +75,8 @@ onMounted(() => {
     <div class="col-span-12 lg:col-span-6 xl:col-span-3">
         <div class="card h-full bg-white mb-0 transition duration-200 hover:scale-105">
             <div class="flex justify-between mb-4">
-                <div class="font-farro text-center">
-                    <span class="block text-black text-2xl font-bold mb-4">Nilai Penjualan</span>
+                <div class="font-farro text-left">
+                    <span class="block text-gray-500 font-medium text-sm mb-2">Nilai Penjualan</span>
                     <div class="text-black text-2xl font-bold">
                         <i v-if="loading" class="pi pi-spin pi-spinner"></i>
                         <span v-else>{{ formatRupiah(summary.totalSales) }}</span>
@@ -91,8 +91,8 @@ onMounted(() => {
     <div class="col-span-12 lg:col-span-6 xl:col-span-3">
         <div class="card h-full bg-white mb-0 transition duration-200 hover:scale-105">
             <div class="flex justify-between mb-4">
-                <div class="font-farro text-center">
-                    <span class="block text-black text-2xl font-bold mb-4">Perlu Reorder</span>
+                <div class="font-farro text-left">
+                    <span class="block text-gray-500 font-medium text-sm mb-2">Perlu Reorder</span>
                     <div class="text-black text-2xl font-bold">
                         <i v-if="loading" class="pi pi-spin pi-spinner"></i>
                         <span v-else>{{ formatNumber(summary.totalNeedReorder) }}</span>

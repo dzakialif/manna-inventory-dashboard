@@ -1,10 +1,12 @@
 <script>
 import { api } from '@/utils/api';
 import Select from 'primevue/select';
+import CustomSelect from '@/components/CustomSelect.vue';
 
 export default {
     components: {
-        Select
+        Select,
+        CustomSelect
     },
     data() {
         return {
@@ -51,7 +53,8 @@ export default {
                     class: "font-farro",
                     style: { fontFamily: "Farro, sans-serif" }
                 }
-            }
+            },
+            runLoading: false,
         };
     },
     computed: {
@@ -161,13 +164,48 @@ export default {
                 currency: "IDR",
                 minimumFractionDigits: 0,
             }).format(value);
-        }
+        },
+        async runABC() {
+            this.runLoading = true;
+            try {
+                await api.post('/analysis/abc');
+                this.$toast?.add?.({
+                    severity: 'success',
+                    summary: 'Berhasil',
+                    detail: 'Analisis ABC berhasil dijalankan. Data sedang diperbarui.',
+                    life: 3000,
+                });
+                await this.fetchABCResults(0);
+            } catch (error) {
+                console.error('Gagal menjalankan analisis ABC:', error);
+                this.$toast?.add?.({
+                    severity: 'error',
+                    summary: 'Gagal',
+                    detail: error.response?.data?.message || error.message || 'Gagal menjalankan analisis ABC',
+                    life: 4000,
+                });
+            } finally {
+                this.runLoading = false;
+            }
+        },
     }
 };
 </script>
 
 <template>
     <div class="card">
+        <!-- ── Action Bar ── -->
+        <div class="flex justify-end mb-4">
+            <button
+                type="button"
+                class="h-10 inline-flex items-center gap-2 font-farro rounded-lg bg-primary text-white px-5 text-sm hover:bg-primary-emphasis transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                :disabled="runLoading"
+                @click="runABC"
+            >
+                {{ runLoading ? 'Menjalankan...' : 'Run ABC' }}
+            </button>
+        </div>
+
         <!-- ── Section 1: Informasi & Ringkasan ── -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
             <!-- Informasi Transaksi -->
@@ -262,28 +300,15 @@ export default {
             >
                 <template #body="{ data }">{{ data.productName }}</template>
                 <template #filter="{ filterModel, filterCallback }">
-                    <Select
+                    <CustomSelect
                         v-model="filterModel.value"
                         :options="productOptions"
                         optionLabel="label"
                         optionValue="value"
                         @change="filterCallback()"
                         placeholder="Pilih nama barang"
-                        class="font-farro"
                         showClear
-                        :pt="{
-                            root: {
-                                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
-                            },
-                            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
-                            dropdown: { class: '!text-gray-400 !bg-white' },
-                            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
-                            listContainer: { class: 'bg-white' },
-                            list: { class: '!bg-white' },
-                            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
-                            optionLabel: { class: '!text-black' },
-                            emptyMessage: { class: '!text-black !bg-white' },
-                        }"
+                        filter
                     />
                 </template>
             </Column>
@@ -338,28 +363,15 @@ export default {
                     <span v-else-if="data.category === 'C'" class="px-3 py-1 rounded-full bg-red-100 text-red-700 font-bold text-xs">Kategori C</span>
                 </template>
                 <template #filter="{ filterModel, filterCallback }">
-                    <Select
+                    <CustomSelect
                         v-model="filterModel.value"
                         :options="categoryOptions"
                         optionLabel="label"
                         optionValue="value"
                         @change="filterCallback()"
                         placeholder="Pilih kategori"
-                        class="font-farro"
                         showClear
-                        :pt="{
-                            root: {
-                                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
-                            },
-                            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
-                            dropdown: { class: '!text-gray-400 !bg-white' },
-                            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
-                            listContainer: { class: 'bg-white' },
-                            list: { class: '!bg-white' },
-                            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
-                            optionLabel: { class: '!text-black' },
-                            emptyMessage: { class: '!text-black !bg-white' },
-                        }"
+                        filter
                     />
                 </template>
             </Column>

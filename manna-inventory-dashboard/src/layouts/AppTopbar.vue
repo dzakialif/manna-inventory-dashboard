@@ -15,6 +15,8 @@ export default {
                 profile: false,
                 notifications: false,
             },
+            showNotifDetail: false,
+            selectedNotif: null,
             toggleMenu: null,
             overlayMenuProfiles: [
                 {
@@ -64,6 +66,7 @@ export default {
             const routeTitles = {
                 dashboard: "Dashboard",
                 barang: "Data Barang",
+                kategori: "Data Kategori",
                 create_barang: "Data Barang",
                 edit_barang: "Data Barang",
                 transaksi: "Transaksi",
@@ -75,6 +78,7 @@ export default {
                 abc_analysis: "Analisis ABC",
                 abc_analysis_detail: "Analisis ABC",
                 stock_analysis: "Analisis Persediaan",
+                stock_analysis_detail: "Analisis Persediaan",
             };
 
             return routeTitles[this.$route?.name] || "Dashboard";
@@ -191,13 +195,18 @@ export default {
         },
         async fetchNotifications() {
             const userId = this.getUserId();
-            if (!userId) return;
+            const token = localStorage.getItem('token');
+            if (!userId || !token) return;
 
             try {
                 const response = await api.get(`/notifications?userId=${userId}&page=0&size=10`);
                 this.notifications = response.data?.data || [];
             } catch (error) {
-                console.error("Gagal mengambil notifikasi:", error);
+                // Jangan tampilkan error di console jika hanya 404/unauthorized
+                if (error?.response?.status !== 404 && error?.response?.status !== 401) {
+                    console.error("Gagal mengambil notifikasi:", error);
+                }
+                this.notifications = [];
             }
         },
         async markNotificationAsRead(notification) {
@@ -211,6 +220,12 @@ export default {
             } catch (error) {
                 console.error("Gagal menandai notifikasi dibaca:", error);
             }
+        },
+        openNotifDetail(notification) {
+            this.selectedNotif = notification;
+            this.showNotifDetail = true;
+            this.show_dialog.notifications = false;
+            this.markNotificationAsRead(notification);
         },
         async markAllNotificationsAsRead() {
             const userId = this.getUserId();
@@ -237,6 +252,21 @@ export default {
                     life: 3000,
                 });
             }
+        },
+        notificationTypeLabel(type) {
+            const map = {
+                ROP_ALERT:    'Stok Mencapai ROP',
+                SS_ALERT:     'Stok di Bawah Safety Stock',
+                LOW_STOCK:    'Stok Rendah',
+                OUT_OF_STOCK: 'Stok Habis',
+                RESTOCK:      'Restock Diperlukan',
+                warning:      'Peringatan',
+                success:      'Berhasil',
+                info:         'Informasi',
+                danger:       'Bahaya',
+            };
+            const key = (type || '').toUpperCase().replace('-', '_');
+            return map[key] || map[type] || type || 'Informasi';
         },
         notificationIcon(type) {
             const t = (type || '').toUpperCase();
@@ -596,7 +626,7 @@ export default {
                                         type="button"
                                         class="notif-item"
                                         :class="{ 'notif-item--unread': !notification.read }"
-                                        @click="markNotificationAsRead(notification)"
+                                        @click="openNotifDetail(notification)"
                                     >
                                         <span class="notif-icon-wrap" :class="`notif-icon--${getNotifClass(notification.type)}`">
                                             <Icon :icon="notificationIcon(notification.type)" class="text-base" />
@@ -607,6 +637,9 @@ export default {
                                                 <span class="notif-time">{{ formatNotifTime(notification.createdAt) }}</span>
                                             </div>
                                             <p class="notif-message">{{ notification.message }}</p>
+                                            <p v-if="notification.details && notification.details.length > 0" class="text-[11px] text-gray-500 mt-1 flex items-center gap-1 font-farro">
+                                                <Icon icon="mdi:format-list-bulleted" /> {{ notification.details.length }} item detail
+                                            </p>
                                         </div>
                                         <span v-if="!notification.read" class="notif-dot"></span>
                                     </button>
@@ -662,6 +695,85 @@ export default {
             </div>
         </div>
     </div>
+
+    <!-- ── Notification Detail Dialog ── -->
+    <Dialog
+        v-model:visible="showNotifDetail"
+        :header="selectedNotif ? selectedNotif.title : 'Detail Notifikasi'"
+        :style="{ width: '28rem' }"
+        :modal="true"
+    >
+        <div v-if="selectedNotif" class="flex flex-col gap-4">
+            <!-- Icon + badges row -->
+            <div class="flex items-center gap-4">
+                <span
+                    class="notif-icon-wrap text-xl w-14 h-14 flex items-center justify-center rounded-full flex-shrink-0"
+                    :class="`notif-icon--${getNotifClass(selectedNotif.type)}`"
+                >
+                    <Icon :icon="notificationIcon(selectedNotif.type)" class="text-2xl" />
+                </span>
+                <div class="flex flex-col gap-1.5">
+                    <!-- Tipe + Status baca sejajar -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full font-farro"
+                            :class="getNotifClass(selectedNotif.type) === 'danger'
+                                ? 'bg-red-50 border border-red-200 text-red-600'
+                                : getNotifClass(selectedNotif.type) === 'warning'
+                                ? 'bg-orange-50 border border-orange-200 text-orange-600'
+                                : getNotifClass(selectedNotif.type) === 'success'
+                                ? 'bg-green-50 border border-green-200 text-green-600'
+                                : 'bg-blue-50 border border-blue-200 text-blue-600'"
+                        >
+                            {{ notificationTypeLabel(selectedNotif.type) }}
+                        </span>
+                        <span
+                            class="inline-block text-xs font-semibold px-3 py-1 rounded-full font-farro border"
+                            :class="selectedNotif.read
+                                ? 'bg-green-50 border-green-200 text-green-600'
+                                : 'bg-orange-50 border-orange-200 text-orange-500'"
+                        >
+                            {{ selectedNotif.read ? 'Sudah Dibaca' : 'Belum Dibaca' }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-400 font-farro">
+                        {{ formatNotifTime(selectedNotif.createdAt) }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Message -->
+            <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p class="font-farro text-sm text-gray-700 leading-relaxed">{{ selectedNotif.message }}</p>
+                
+                <!-- Details -->
+                <div v-if="selectedNotif.details && selectedNotif.details.length > 0" class="mt-3">
+                    <details class="group">
+                        <summary class="font-farro text-xs font-semibold text-primary cursor-pointer select-none outline-none flex items-center gap-1">
+                            <i class="pi pi-chevron-right text-[10px] transition-transform duration-200 group-open:rotate-90"></i>
+                            Lihat Detail Item ({{ selectedNotif.details.length }})
+                        </summary>
+                        <div class="mt-2 bg-white p-3 rounded-lg border border-gray-100 max-h-48 overflow-y-auto">
+                            <ul class="text-xs text-gray-600 list-disc pl-4 space-y-1 font-farro">
+                                <li v-for="(item, idx) in selectedNotif.details" :key="idx">{{ item }}</li>
+                            </ul>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+
+        <template #footer>
+            <div class="flex justify-end">
+                <button
+                    type="button"
+                    class="h-10 inline-flex items-center gap-2 rounded-lg bg-primary px-6 font-farro text-sm text-white hover:bg-primary-dark transition duration-200"
+                    @click="showNotifDetail = false"
+                >
+                    <i class="pi pi-check text-xs"></i> Tutup
+                </button>
+            </div>
+        </template>
+    </Dialog>
 
     <Dialog
         v-model:visible="show_dialog.profile"

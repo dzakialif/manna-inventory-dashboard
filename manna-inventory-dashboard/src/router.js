@@ -64,16 +64,6 @@ const router = createRouter({
                     name: "kategori",
                     component: () => import("@/pages/kategori/Kategori.vue")
                 },
-                // {
-                //     path: "/kategori/create",
-                //     name: "create_kategori",
-                //     component: () => import("@/pages/kategori/Form.vue")
-                // },
-                // {
-                //     path: "/kategori/edit/:id",
-                //     name: "edit_kategori",
-                //     component: () => import("@/pages/kategori/Form.vue")
-                // },
                 {
                     path: "/stock-opname",
                     name: "stock_opname",

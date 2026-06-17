@@ -1,33 +1,22 @@
 <script>
 import { useLayout } from '@/layouts/composables/layout';
+import { api } from '@/utils/api';
 import Chart from 'primevue/chart';
-import Select from 'primevue/select';
+import CustomMonthPicker from '@/components/CustomMonthPicker.vue';
 
 export default {
   components: {
     Chart,
-    Select,
+    CustomMonthPicker,
   },
+  emits: ['filter-change'],
   data() {
     return {
       chartOptions: null,
       chartData: null,
       topSales: [],
-      selectedMonth: { name: 'Januari', code: '01' },
-      months: [
-        { name: 'Januari', code: '01' },
-        { name: 'Februari', code: '02' },
-        { name: 'Maret', code: '03' },
-        { name: 'April', code: '04' },
-        { name: 'Mei', code: '05' },
-        { name: 'Juni', code: '06' },
-        { name: 'Juli', code: '07' },
-        { name: 'Agustus', code: '08' },
-        { name: 'September', code: '09' },
-        { name: 'Oktober', code: '10' },
-        { name: 'November', code: '11' },
-        { name: 'Desember', code: '12' },
-      ],
+      loading: false,
+      selectedDate: null,
     };
   },
   setup() {
@@ -35,13 +24,13 @@ export default {
 
     function setChartData(data) {
       return {
-        labels: data.map((item) => item.product_name),
+        labels: data.map((item) => item.productName),
         datasets: [
           {
             type: 'bar',
             label: 'Penjualan (Unit)',
             backgroundColor: '#037D5B',
-            data: data.map((item) => item.total_sales),
+            data: data.map((item) => item.totalSales),
             barThickness: 32,
           },
         ],
@@ -58,21 +47,13 @@ export default {
         scales: {
           x: {
             stacked: true,
-            ticks: {
-              color: textMutedColor,
-            },
-            grid: {
-              display: false,
-            },
+            ticks: { color: textMutedColor },
+            grid: { display: false },
           },
           y: {
             stacked: true,
-            ticks: {
-              color: textMutedColor,
-            },
-            grid: {
-              display: false,
-            },
+            ticks: { color: textMutedColor },
+            grid: { display: false },
           },
         },
       };
@@ -87,24 +68,56 @@ export default {
     };
   },
   methods: {
-    loadDummyData() {
-      this.topSales = [
-        { product_name: 'Moiaa Swiss Choco 1000 grm', total_sales: 500 },
-        { product_name: 'Moiaa Mango 200 grm', total_sales: 230 },
-        { product_name: 'Moiaa Mango 1000 grm', total_sales: 400 },
-        { product_name: 'SBC Cappucino Original 1000 grm', total_sales: 300 },
-        { product_name: 'Moiaa Swiss Choco 200 grm', total_sales: 310 },
-      ];
-      this.chartData = this.setChartData(this.topSales);
+    async fetchTopSales() {
+      this.loading = true;
+      try {
+        let month = null;
+        let year = null;
+        
+        if (this.selectedDate) {
+          month = this.selectedDate.getMonth() + 1;
+          year = this.selectedDate.getFullYear();
+        }
+        
+        const response = await api.get('/transactions/top-sales', {
+          params: { month, year },
+        });
+        
+        // Emit initial value on first load
+        if (!this.initialEmitDone) {
+          this.$emit('filter-change', { month, year });
+          this.initialEmitDone = true;
+        }
+        if (response.data && response.data.data) {
+          this.topSales = response.data.data;
+        } else {
+          this.topSales = [];
+        }
+        this.chartData = this.setChartData(this.topSales);
+      } catch (error) {
+        console.error('Gagal memuat data top sales:', error);
+        this.topSales = [];
+        this.chartData = this.setChartData([]);
+      } finally {
+        this.loading = false;
+      }
     },
   },
   mounted() {
     this.chartOptions = this.setChartOptions();
-    this.loadDummyData();
+    this.chartData = this.setChartData([]);
+    this.fetchTopSales();
   },
   watch: {
-    selectedMonth() {
-      this.loadDummyData();
+    selectedDate(val) {
+      this.fetchTopSales();
+      let month = null;
+      let year = null;
+      if (val) {
+        month = val.getMonth() + 1;
+        year = val.getFullYear();
+      }
+      this.$emit('filter-change', { month, year });
     },
     getPrimary() {
       this.chartData = this.setChartData(this.topSales);
@@ -124,31 +137,34 @@ export default {
 
 <template>
   <div class="card">
-    <div class="flex justify-between">
-      <div class="font-bold font-farro text-xl mb-4">Top Penjualan Bulanan</div>
-      <Select
-        v-model="selectedMonth"
-        :options="months"
-        optionLabel="name"
-        placeholder="Pilih Bulan"
-        class="font-farro"
-        :pt="{
-          root: {
-            class: '!bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
-          },
-          label: { class: '!text-black' },
-          dropdown: { class: '!text-black !bg-white' },
-          overlay: { class: 'summary-month-overlay !bg-white !text-black !border !border-gray-200 !shadow-md' },
-          listContainer: { class: 'summary-month-scroll !bg-white' },
-          list: { class: '!bg-white' },
-          option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
-          optionLabel: { class: '!text-black' },
-          emptyMessage: { class: '!text-black !bg-white' },
-        }"
-      />
+    <div class="flex justify-between items-center mb-4">
+      <div class="font-bold font-farro text-xl">
+        Top Penjualan Bulanan
+        <i v-if="loading" class="pi pi-spin pi-spinner ml-2 text-base text-gray-400"></i>
+      </div>
+      <div class="flex gap-2">
+        <CustomMonthPicker
+          v-model="selectedDate"
+          placeholder="Pilih Bulan & Tahun"
+          style="width: 250px"
+          class="cursor-pointer"
+        />
+      </div>
     </div>
 
-    <Chart type="bar" :data="chartData" :options="chartOptions" class="h-80 font-farro" />
+    <div
+      v-if="!loading && topSales.length === 0"
+      class="flex items-center justify-center h-80 text-gray-400 font-farro text-sm"
+    >
+      Tidak ada data penjualan untuk bulan ini.
+    </div>
+    <Chart
+      v-else-if="chartData && chartOptions"
+      type="bar"
+      :data="chartData"
+      :options="chartOptions"
+      class="h-80 font-farro"
+    />
   </div>
 </template>
 
@@ -159,34 +175,4 @@ export default {
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
-</style>
-
-<style lang="scss">
-// .summary-month-overlay,
-// .summary-month-overlay .p-select-list,
-// .summary-month-overlay .p-select-list-container {
-//   background: #ffffff !important;
-// }
-
-// .summary-month-overlay .summary-month-scroll {
-//   scrollbar-color: #cbd5e1 #ffffff;
-// }
-
-// .summary-month-overlay .summary-month-scroll::-webkit-scrollbar {
-//   width: 10px;
-// }
-
-// .summary-month-overlay .summary-month-scroll::-webkit-scrollbar-track {
-//   background: #ffffff;
-// }
-
-// .summary-month-overlay .summary-month-scroll::-webkit-scrollbar-thumb {
-//   background: #cbd5e1;
-//   border-radius: 9999px;
-//   border: 2px solid #ffffff;
-// }
-
-// .summary-month-overlay .summary-month-scroll::-webkit-scrollbar-thumb:hover {
-//   background: #94a3b8;
-// }
 </style>

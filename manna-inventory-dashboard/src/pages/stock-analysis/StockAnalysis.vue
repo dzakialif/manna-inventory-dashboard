@@ -1,10 +1,12 @@
 <script>
 import { api } from "@/utils/api";
 import Select from "primevue/select";
+import CustomSelect from "@/components/CustomSelect.vue";
 
 export default {
     components: {
-        Select
+        Select,
+        CustomSelect
     },
     data() {
         return {
@@ -41,7 +43,8 @@ export default {
                 }
             },
             showDeleteDialog: false,
-            tempData: null
+            tempData: null,
+            runLoading: false,
         };
     },
     async mounted() {
@@ -170,6 +173,29 @@ export default {
         toggle(event, itemId) {
             this.$refs[`menu_${itemId}`]?.toggle?.(event);
         },
+        async runForecast() {
+            this.runLoading = true;
+            try {
+                await api.post('/analysis/forecast');
+                this.$toast?.add?.({
+                    severity: 'success',
+                    summary: 'Berhasil',
+                    detail: 'Forecast berhasil dijalankan. Data sedang diperbarui.',
+                    life: 3000,
+                });
+                await this.fetchForecastData(0);
+            } catch (error) {
+                console.error('Gagal menjalankan forecast:', error);
+                this.$toast?.add?.({
+                    severity: 'error',
+                    summary: 'Gagal',
+                    detail: error.response?.data?.message || error.message || 'Gagal menjalankan forecast',
+                    life: 4000,
+                });
+            } finally {
+                this.runLoading = false;
+            }
+        },
         statusBadgeClass(status) {
             const base = "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold";
             if (!status) return `${base} bg-gray-100 text-gray-800`;
@@ -185,6 +211,18 @@ export default {
 
 <template>
     <div class="card">
+        <!-- ── Action Bar ── -->
+        <div class="flex justify-end mb-4">
+            <button
+                type="button"
+                class="h-10 inline-flex items-center gap-2 font-farro rounded-lg bg-primary text-white px-5 text-sm hover:bg-primary-emphasis transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                :disabled="runLoading"
+                @click="runForecast"
+            >
+                {{ runLoading ? 'Menjalankan...' : 'Run Forecast' }}
+            </button>
+        </div>
+
         <DataTable
             class="barang-datatable font-farro text-sm"
             :value="data"
@@ -225,28 +263,15 @@ export default {
             >
                 <template #body="{ data }">{{ data.nama }}</template>
                 <template #filter="{ filterModel, filterCallback }">
-                    <Select
+                    <CustomSelect
                         v-model="filterModel.value"
                         :options="productOptions"
                         optionLabel="label"
                         optionValue="value"
                         @change="filterCallback()"
                         placeholder="Pilih nama barang"
-                        class="font-farro"
                         showClear
-                        :pt="{
-                            root: {
-                                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
-                            },
-                            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
-                            dropdown: { class: '!text-gray-400 !bg-white' },
-                            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
-                            listContainer: { class: 'bg-white' },
-                            list: { class: '!bg-white' },
-                            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
-                            optionLabel: { class: '!text-black' },
-                            emptyMessage: { class: '!text-black !bg-white' },
-                        }"
+                        filter
                     />
                 </template>
             </Column>
@@ -312,28 +337,15 @@ export default {
                     </span>
                 </template>
                 <template #filter="{ filterModel, filterCallback }">
-                    <Select
+                    <CustomSelect
                         v-model="filterModel.value"
                         :options="statusOptions"
                         optionLabel="label"
                         optionValue="value"
                         @change="filterCallback()"
                         placeholder="Pilih status"
-                        class="font-farro"
                         showClear
-                        :pt="{
-                            root: {
-                                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
-                            },
-                            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
-                            dropdown: { class: '!text-gray-400 !bg-white' },
-                            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
-                            listContainer: { class: 'bg-white' },
-                            list: { class: '!bg-white' },
-                            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
-                            optionLabel: { class: '!text-black' },
-                            emptyMessage: { class: '!text-black !bg-white' },
-                        }"
+                        filter
                     />
                 </template>
             </Column>

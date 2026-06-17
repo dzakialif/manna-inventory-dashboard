@@ -1,7 +1,13 @@
 <script>
 import { api } from "@/utils/api";
+import CustomDateRange from "@/components/CustomDateRange.vue";
+import CustomSelect from "@/components/CustomSelect.vue";
 
 export default {
+    components: {
+        CustomDateRange,
+        CustomSelect,
+    },
     data() {
         return {
             data: [],
@@ -35,10 +41,12 @@ export default {
                 }
             },
             showDeleteDialog: false,
-            tempData: null
+            tempData: null,
+            productOptions: []
         };
     },
-    mounted() {
+    async mounted() {
+        await this.fetchProductDropdown();
         this.fetchStockOpnames();
     },
     methods: {
@@ -48,8 +56,27 @@ export default {
                 let queryParams = `page=${page}&size=${this.pageSize}`;
 
                 const f = this.filters;
-                if (f.tanggal_opname.value !== null && f.tanggal_opname.value !== '') queryParams += `&date=${encodeURIComponent(f.tanggal_opname.value)}`;
-                if (f.nama.value !== null && f.nama.value !== '') queryParams += `&productName=${encodeURIComponent(f.nama.value)}`;
+                if (f.tanggal_opname.value !== null && Array.isArray(f.tanggal_opname.value)) {
+                  const [start, end] = f.tanggal_opname.value;
+                  let startStr = null;
+                  
+                  if (start) {
+                    startStr = new Date(start.getTime() - (start.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    queryParams += `&dateFrom=${startStr}`;
+                  }
+                  if (end) {
+                    const endStr = new Date(end.getTime() - (end.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    queryParams += `&dateTo=${endStr}`;
+                  } else if (startStr) {
+                    // Jika user hanya memilih 1 tanggal (end = null), jadikan filter tepat untuk 1 hari tersebut
+                    queryParams += `&dateTo=${startStr}`;
+                  }
+                }
+                if (f.nama.value !== null && f.nama.value !== '') {
+                    const prod = this.productOptions.find(p => p.value === f.nama.value);
+                    const productName = prod ? prod.label : f.nama.value;
+                    queryParams += `&productName=${encodeURIComponent(productName)}`;
+                }
                 if (f.stok_sistem.value !== null && f.stok_sistem.value !== '') queryParams += `&stockSystem=${encodeURIComponent(f.stok_sistem.value)}`;
                 if (f.stok_fisik.value !== null && f.stok_fisik.value !== '') queryParams += `&stockActual=${encodeURIComponent(f.stok_fisik.value)}`;
                 if (f.selisih.value !== null && f.selisih.value !== '') queryParams += `&diff=${encodeURIComponent(f.selisih.value)}`;
@@ -162,6 +189,14 @@ export default {
         },
         toggle(event, itemId) {
             this.$refs[`menu_${itemId}`]?.toggle?.(event);
+        },
+        async fetchProductDropdown() {
+            try {
+                const response = await api.get('/products/dropdown');
+                this.productOptions = response.data?.data || [];
+            } catch (error) {
+                console.error('Gagal memuat dropdown produk:', error);
+            }
         }
     }
 };
@@ -213,16 +248,14 @@ export default {
                 filter
                 :showFilterMenu="false"
                 filterPlaceholder="Cari tanggal opname..."
-                style="min-width: 10rem"
+                style="min-width: 16rem"
             >
                 <template #body="{ data }">{{ data.tanggal_opname }}</template>
                 <template #filter="{ filterModel, filterCallback }">
-                    <input
+                    <CustomDateRange
                         v-model="filterModel.value"
-                        type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Cari tanggal opname..."
-                        @input="filterCallback()"
+                        placeholder="Pilih rentang tanggal"
+                        @change="filterCallback()"
                     />
                 </template>
             </Column>
@@ -240,12 +273,15 @@ export default {
             >
                 <template #body="{ data }">{{ data.nama }}</template>
                 <template #filter="{ filterModel, filterCallback }">
-                    <input
+                    <CustomSelect
                         v-model="filterModel.value"
-                        type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Cari nama barang..."
-                        @input="filterCallback()"
+                        :options="productOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        @change="filterCallback()"
+                        placeholder="Pilih nama barang"
+                        showClear
+                        filter
                     />
                 </template>
             </Column>

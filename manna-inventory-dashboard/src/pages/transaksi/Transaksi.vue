@@ -1,10 +1,12 @@
 <script>
 import Select from "primevue/select";
 import { api } from "@/utils/api";
+import CustomDateRange from "@/components/CustomDateRange.vue";
 
 export default {
     components: {
         Select,
+        CustomDateRange,
     },
     data() {
         return {
@@ -52,8 +54,15 @@ export default {
             ],
             showImportDialog: false,
             importFile: null,
-            importJenis: null,
-            isDragOver: false
+            isDragOver: false,
+            isImporting: false,
+            showImportResultDialog: false,
+            importResult: {
+                total: 0,
+                success: 0,
+                failed: 0,
+                errors: []
+            }
         };
     },
     async mounted() {
@@ -83,10 +92,22 @@ export default {
 
             const f = this.filters;
             if (f.refNumber.value !== null && f.refNumber.value !== '') queryParams += `&referenceNumber=${encodeURIComponent(f.refNumber.value)}`;
-            if (f.tanggal.value !== null && f.tanggal.value !== '') queryParams += `&date=${encodeURIComponent(f.tanggal.value)}`;
+            
+            if (f.tanggal.value !== null && Array.isArray(f.tanggal.value)) {
+              const [start, end] = f.tanggal.value;
+              if (start) {
+                const startStr = new Date(start.getTime() - (start.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                queryParams += `&dateFrom=${startStr}`;
+              }
+              if (end) {
+                const endStr = new Date(end.getTime() - (end.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                queryParams += `&dateTo=${endStr}`;
+              }
+            }
             if (f.sumber.value !== null && f.sumber.value !== '') queryParams += `&source=${encodeURIComponent(f.sumber.value)}`;
             if (f.jenis.value !== null && f.jenis.value !== '') queryParams += `&transactionType=${encodeURIComponent(f.jenis.value)}`;
             if (f.status.value !== null && f.status.value !== '') queryParams += `&status=${encodeURIComponent(f.status.value)}`;
+            if (f.user.value !== null && f.user.value !== '') queryParams += `&userName=${encodeURIComponent(f.user.value)}`;
 
             if (this.sortField && this.sortOrder !== null) {
                 let mappedSortField = this.sortField;
@@ -270,17 +291,54 @@ export default {
             if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
             return (bytes / 1048576).toFixed(1) + ' MB';
         },
-        doImport() {
-            if (!this.importFile) return;
-            this.$toast?.add?.({
-                severity: 'success',
-                summary: 'Berhasil',
-                detail: `File "${this.importFile.name}"${this.importJenis ? ' ('+this.importJenis+')' : ''} berhasil diimport`,
-                life: 3000,
-            });
-            this.showImportDialog = false;
-            this.importJenis = null;
-            this.clearImportFile();
+        async doImport() {
+            if (!this.importFile || this.isImporting) return;
+            this.isImporting = true;
+            try {
+                const formData = new FormData();
+                formData.append('file', this.importFile);
+                formData.append('transactionType', 'OUT');
+
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    try {
+                        const user = JSON.parse(userStr);
+                        if (user && user.userId) {
+                            formData.append('userId', user.userId);
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse user from localStorage', e);
+                    }
+                }
+
+                const response = await api.post('/documents/upload', formData);
+
+                const result = response.data?.data ?? response.data;
+                this.importResult = {
+                    total: result?.totalRows ?? 0,
+                    success: result?.successRows ?? 0,
+                    failed: result?.failedRows ?? 0,
+                    errors: result?.errors ?? []
+                };
+
+                this.showImportDialog = false;
+                this.showImportResultDialog = true;
+                await this.fetchTransactions(0);
+            } catch (error) {
+                console.error('Gagal mengimport file:', error);
+                const errData = error?.response?.data?.data ?? error?.response?.data;
+                this.importResult = {
+                    total: errData?.totalRows ?? 0,
+                    success: errData?.successRows ?? 0,
+                    failed: errData?.failedRows ?? 1,
+                    errors: errData?.errors ?? [error.message || 'Terjadi kesalahan saat mengimport file']
+                };
+                this.showImportDialog = false;
+                this.showImportResultDialog = true;
+            } finally {
+                this.isImporting = false;
+                this.clearImportFile();
+            }
         },
         toggle(event, itemId) {
             this.$refs[`menu_${itemId}`]?.toggle?.(event);
@@ -345,12 +403,10 @@ export default {
             >
                 <template #body="{ data }">{{ data.tanggal }}</template>
                 <template #filter="{ filterModel, filterCallback }">
-                    <input
+                    <CustomDateRange
                         v-model="filterModel.value"
-                        type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Cari tanggal..."
-                        @input="filterCallback()"
+                        placeholder="Pilih rentang tanggal"
+                        @change="filterCallback()"
                     />
                 </template>
             </Column>
@@ -472,7 +528,7 @@ export default {
                     <input
                         v-model="filterModel.value"
                         type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                         placeholder="Cari status..."
                         @input="filterCallback()"
                     />
@@ -495,7 +551,7 @@ export default {
                     <input
                         v-model="filterModel.value"
                         type="text"
-                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+                        class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                         placeholder="Cari user..."
                         @input="filterCallback()"
                     />
@@ -536,38 +592,11 @@ export default {
     <!-- ── Import File Dialog ── -->
     <Dialog
         v-model:visible="showImportDialog"
-        header="Import File Transaksi"
+        header="Import Transaksi Keluar"
         :style="{ width: '32rem' }"
         :modal="true"
         @hide="clearImportFile"
     >
-        <!-- Jenis Transaksi -->
-        <div class="mb-4">
-            <label class="mb-2 block font-farro text-sm font-medium text-gray-700">
-                Jenis Transaksi <span class="text-red-500">*</span>
-            </label>
-            <Select
-                v-model="importJenis"
-                :options="jenisOptions"
-                placeholder="Pilih jenis transaksi"
-                class="font-farro w-full"
-                showClear
-                :pt="{
-                root: {
-                    class: 'flex items-center !bg-white !text-black !border !border-gray-300 !rounded-lg !h-12 !w-full focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
-                },
-                label: { class: importJenis ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
-                dropdown: { class: '!text-gray-500 !bg-white' },
-                overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
-                listContainer: { class: 'bg-white' },
-                list: { class: '!bg-white' },
-                option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
-                optionLabel: { class: '!text-black' },
-                emptyMessage: { class: '!text-black !bg-white' },
-                }"
-            />
-        </div>
-
         <!-- Drop Zone -->
         <div
             class="mb-5 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed transition-colors duration-200 p-8 cursor-pointer"
@@ -580,12 +609,12 @@ export default {
             <Icon icon="mdi:cloud-upload-outline" class="text-5xl" :class="isDragOver ? 'text-primary' : 'text-gray-400'" />
             <div class="text-center">
                 <p class="font-farro font-semibold text-sm text-gray-700">Klik atau seret file ke sini</p>
-                <p class="font-farro text-xs text-gray-400 mt-1">Format: .xlsx, .xls, .csv, .pdf (maks. 10 MB)</p>
+                <p class="font-farro text-xs text-gray-400 mt-1">Format: .pdf (maks. 10 MB)</p>
             </div>
             <input
                 ref="fileInput"
                 type="file"
-                accept=".xlsx,.xls,.csv,.pdf,application/pdf"
+                accept=".pdf,application/pdf"
                 class="hidden"
                 @change="handleFileSelect"
             />
@@ -631,12 +660,80 @@ export default {
             <button
                 type="button"
                 class="h-10 inline-flex items-center gap-2 rounded-lg bg-primary px-5 font-farro text-sm text-white hover:bg-primary-dark transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                :disabled="!importFile"
+                :disabled="!importFile || isImporting"
                 @click="doImport"
             >
-                <i class="pi pi-upload text-xs"></i> Import
+                <i v-if="isImporting" class="pi pi-spin pi-spinner text-xs"></i>
+                <i v-else class="pi pi-upload text-xs"></i>
+                {{ isImporting ? 'Mengimport...' : 'Import' }}
             </button>
         </div>
+    </Dialog>
+
+    <!-- ── Import Result Dialog ── -->
+    <Dialog
+        v-model:visible="showImportResultDialog"
+        header="Hasil Import File"
+        :style="{ width: '30rem' }"
+        :modal="true"
+    >
+        <div class="flex flex-col gap-4 py-2">
+            <!-- Total rows info -->
+            <div class="flex items-center justify-center gap-2 rounded-lg bg-gray-100 border border-gray-200 py-2 px-4">
+                <i class="pi pi-file text-sm text-gray-500"></i>
+                <span class="font-farro text-sm text-gray-600">Total data dibaca:</span>
+                <span class="font-farro text-sm font-bold text-gray-800">{{ importResult.total }} baris</span>
+            </div>
+
+            <!-- Summary cards -->
+            <div class="grid grid-cols-2 gap-3">
+                <!-- Berhasil -->
+                <div class="flex flex-col items-center justify-center gap-1 rounded-xl bg-green-50 border border-green-200 py-5">
+                    <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 mb-1">
+                        <i class="pi pi-check-circle text-2xl text-green-500"></i>
+                    </div>
+                    <span class="font-farro text-3xl font-bold text-green-600">{{ importResult.success }}</span>
+                    <span class="font-farro text-xs text-green-700 font-medium">Data Berhasil</span>
+                </div>
+                <!-- Gagal -->
+                <div class="flex flex-col items-center justify-center gap-1 rounded-xl bg-red-50 border border-red-200 py-5">
+                    <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mb-1">
+                        <i class="pi pi-times-circle text-2xl text-red-500"></i>
+                    </div>
+                    <span class="font-farro text-3xl font-bold text-red-600">{{ importResult.failed }}</span>
+                    <span class="font-farro text-xs text-red-700 font-medium">Data Gagal</span>
+                </div>
+            </div>
+
+            <!-- Error details -->
+            <div v-if="importResult.errors && importResult.errors.length > 0" class="rounded-xl border border-red-200 bg-red-50 p-3">
+                <p class="font-farro text-xs font-semibold text-red-700 mb-2">
+                    <i class="pi pi-exclamation-triangle mr-1"></i> Detail Kesalahan:
+                </p>
+                <ul class="space-y-1 max-h-32 overflow-y-auto">
+                    <li
+                        v-for="(err, idx) in importResult.errors"
+                        :key="idx"
+                        class="font-farro text-xs text-red-600 flex items-start gap-1"
+                    >
+                        <span class="mt-0.5 flex-shrink-0">•</span>
+                        <span>{{ err }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <template #footer>
+            <div class="flex justify-end">
+                <button
+                    type="button"
+                    class="h-10 inline-flex items-center gap-2 rounded-lg bg-primary px-6 font-farro text-sm text-white hover:bg-primary-dark transition duration-200"
+                    @click="showImportResultDialog = false"
+                >
+                    <i class="pi pi-check text-xs"></i> Tutup
+                </button>
+            </div>
+        </template>
     </Dialog>
 
     <!-- set cancel -->

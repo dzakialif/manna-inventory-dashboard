@@ -1,7 +1,11 @@
 <script>
 import { api } from '@/utils/api';
+import CustomDateRange from '@/components/CustomDateRange.vue';
 
 export default {
+  components: {
+    CustomDateRange,
+  },
   data() {
     return {
       data: [],
@@ -55,6 +59,18 @@ export default {
 
         const f = this.filters;
         if (f.nama.value !== null && f.nama.value !== '') queryParams += `&name=${encodeURIComponent(f.nama.value)}`;
+        
+        if (f.tanggal_dibuat.value !== null && Array.isArray(f.tanggal_dibuat.value)) {
+          const [start, end] = f.tanggal_dibuat.value;
+          if (start) {
+            const startStr = new Date(start.getTime() - (start.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            queryParams += `&createdAtFrom=${startStr}`;
+          }
+          if (end) {
+            const endStr = new Date(end.getTime() - (end.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            queryParams += `&createdAtTo=${endStr}`;
+          }
+        }
 
         if (this.sortField && this.sortOrder !== null) {
           let mappedSortField = this.sortField;
@@ -300,7 +316,7 @@ export default {
           <input
             v-model="filterModel.value"
             type="text"
-            class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+            class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
             placeholder="Cari nama kategori..."
             @input="filterCallback()"
           />
@@ -323,7 +339,7 @@ export default {
           <input
             v-model="filterModel.value"
             type="text"
-            class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
+            class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
             placeholder="Cari deskripsi..."
             @input="filterCallback()"
           />
@@ -343,12 +359,10 @@ export default {
       >
         <template #body="{ data }">{{ data.tanggal_dibuat }}</template>
         <template #filter="{ filterModel, filterCallback }">
-          <input
+          <CustomDateRange
             v-model="filterModel.value"
-            type="text"
-            class="w-full rounded-md border border-gray-300 px-2 py-1 text-sm font-farro focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Cari tanggal..."
-            @input="filterCallback()"
+            placeholder="Pilih rentang tanggal"
+            @change="filterCallback()"
           />
         </template>
       </Column>

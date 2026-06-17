@@ -146,7 +146,8 @@ export default {
                 console.error("Gagal mendapatkan user ID:", e);
             }
             if (!userId) {
-                userId = "550e8400-e29b-41d4-a716-446655440000"; // fallback
+                // Jika userId tidak ditemukan, kirim null (backend akan mengabaikan userId)
+                userId = null;
             }
 
             const payload = {

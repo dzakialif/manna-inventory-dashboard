@@ -1,11 +1,13 @@
 <script>
 import Select from "primevue/select";
+import CustomSelect from "@/components/CustomSelect.vue";
 import Textarea from "primevue/textarea";
 import { api } from "@/utils/api";
 
 export default {
     components: {
         Select,
+        CustomSelect,
         Textarea,
     },
     data() {
@@ -206,27 +208,16 @@ export default {
 
                 <div class="form-group mb-2 w-full">
                     <label class="mb-2 block font-farro">Nama Barang <span class="text-red-500">*</span></label>
-                    <Select
+                    <CustomSelect
                         v-model="form.nama"
                         :options="barangOptions"
                         optionLabel="label"
                         optionValue="value"
                         placeholder="Pilih barang"
-                        class="font-farro w-full"
+                        class="font-farro w-full !h-12"
+                        style="height: 3rem;"
                         showClear
-                        :pt="{
-                        root: {
-                            class: 'flex items-center !bg-white !text-black !border !border-gray-300 !rounded-lg !h-12 !w-full focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
-                        },
-                        label: { class: form.nama ? '!text-black !text-md' : '!text-gray-400 !text-md' },
-                        dropdown: { class: '!text-black !bg-white' },
-                        overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
-                        listContainer: { class: 'bg-white' },
-                        list: { class: '!bg-white' },
-                        option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
-                        optionLabel: { class: '!text-black' },
-                        emptyMessage: { class: '!text-black !bg-white' },
-                        }"
+                        filter
                     />
                 </div>
             </div>
@@ -298,4 +289,9 @@ export default {
 </template>
 
 <style lang="scss" scoped>
+:deep(.p-select) {
+    height: 3rem !important;
+    min-height: 3rem !important;
+    border-radius: 0.5rem !important; /* matches rounded-lg of other fields */
+}
 </style>

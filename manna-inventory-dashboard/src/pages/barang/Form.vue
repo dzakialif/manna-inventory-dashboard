@@ -1,10 +1,12 @@
 <script>
 import Select from "primevue/select";
+import RasaSelect from "@/components/RasaSelect.vue";
 import { api } from "@/utils/api";
 
 export default {
     components: {
         Select,
+        RasaSelect,
     },
     data() {
         return {
@@ -252,11 +254,12 @@ export default {
 
                 <div class="form-group mb-2 w-full">
                     <label class="mb-2 block font-farro">Rasa <span class="text-red-500">*</span></label>
-                    <input
+                    <RasaSelect
                         v-model="form.rasa"
-                        type="text"
-                        class="font-farro h-12 w-full rounded-lg border border-gray-300 px-4 focus:ring-2 focus:ring-primary focus:outline-none"
-                        placeholder="Masukkan rasa barang..."
+                        placeholder="Pilih rasa barang..."
+                        class="w-full form-rasa-select"
+                        filter
+                        showClear
                     />
                 </div>
             </div>
@@ -282,6 +285,11 @@ export default {
 </template>
 
 <style lang="scss" scoped>
+:deep(.form-rasa-select) {
+    height: 3rem !important;
+    border-radius: 0.5rem !important;
+}
+
 :deep(.kategori-dropdown.p-focus) {
     border-color: #037d5b !important;
     box-shadow: 0 0 0 1px #037d5b !important;

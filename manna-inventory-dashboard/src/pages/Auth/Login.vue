@@ -48,11 +48,9 @@ const doLogin = async (event) => {
             const token = response.data.data.accessToken
             const user = response.data.data.user
 
-            // Simpan token dan data user ke localStorage
+            // Simpan access token dan data user ke localStorage
+            // Refresh token dikelola server via HttpOnly cookie (tidak perlu disimpan di sini)
             localStorage.setItem('token', token)
-            if (response.data.data.refreshToken) {
-                localStorage.setItem('refreshToken', response.data.data.refreshToken)
-            }
             localStorage.setItem('user', JSON.stringify(user))
 
             // Redirect ke halaman dashboard
@@ -161,11 +159,6 @@ const revokeLogin = (response) => {
                                     @click="togglePasswordVisibility"
                                     class="absolute right-0 top-4 translate-y-1/2 cursor-pointer text-gray-500 hover:text-gray-700 transition duration-300"
                                 ></i>
-                            </div>
-                            <div class="text-right mt-2">
-                                <a href="#" class="text-sm text-primary hover:text-primary-light font-medium">
-                                    Forgot Password?
-                                </a>
                             </div>
                         </div>
                         <div>

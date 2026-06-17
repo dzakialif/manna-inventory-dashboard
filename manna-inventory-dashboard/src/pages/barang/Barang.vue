@@ -1,10 +1,14 @@
 <script>
 import Select from 'primevue/select';
+import CustomSelect from '@/components/CustomSelect.vue';
+import RasaSelect from '@/components/RasaSelect.vue';
 import { api } from '@/utils/api';
 
 export default {
   components: {
     Select,
+    CustomSelect,
+    RasaSelect,
   },
   data() {
     return {
@@ -44,7 +48,6 @@ export default {
       kategoriOptions: [],
       categoriesList: [],
       ukuranOptions: [],
-      rasaOptions: [],
       satuanOptions: [],
       productOptions: [],
       showDeleteDialog: false,
@@ -55,7 +58,6 @@ export default {
     await Promise.all([
       this.fetchCategoriesDropdown(),
       this.fetchCategories(),
-      this.fetchRasaDropdown(),
       this.fetchUkuranDropdown(),
       this.fetchSatuanDropdown(),
       this.fetchProductDropdown(),
@@ -231,14 +233,6 @@ export default {
         console.error('Gagal memuat list kategori:', error);
       }
     },
-    async fetchRasaDropdown() {
-      try {
-        const response = await api.get('/products/flavors');
-        this.rasaOptions = response.data?.data || [];
-      } catch (error) {
-        console.error('Gagal memuat dropdown rasa:', error);
-      }
-    },
     async fetchUkuranDropdown() {
       try {
         const response = await api.get('/products/sizes');
@@ -344,28 +338,15 @@ export default {
       >
         <template #body="{ data }">{{ data.nama }}</template>
         <template #filter="{ filterModel, filterCallback }">
-          <Select
+          <CustomSelect
             v-model="filterModel.value"
             :options="productOptions"
             optionLabel="label"
             optionValue="value"
             @change="filterCallback()"
             placeholder="Pilih nama barang"
-            class="font-farro"
             showClear
-            :pt="{
-            root: {
-                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
-            },
-            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
-            dropdown: { class: '!text-gray-400 !bg-white' },
-            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
-            listContainer: { class: 'bg-white' },
-            list: { class: '!bg-white' },
-            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
-            optionLabel: { class: '!text-black' },
-            emptyMessage: { class: '!text-black !bg-white' },
-            }"
+            filter
           />
         </template>
       </Column>
@@ -383,28 +364,15 @@ export default {
       >
         <template #body="{ data }">{{ data.kategori }}</template>
         <template #filter="{ filterModel, filterCallback }">
-          <Select
+          <CustomSelect
             v-model="filterModel.value"
             :options="kategoriOptions"
             optionLabel="name"
             optionValue="categoryId"
             @change="filterCallback()"
             placeholder="Pilih kategori"
-            class="font-farro"
             showClear
-            :pt="{
-            root: {
-                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
-            },
-            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
-            dropdown: { class: '!text-gray-400 !bg-white' },
-            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
-            listContainer: { class: 'bg-white' },
-            list: { class: '!bg-white' },
-            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
-            optionLabel: { class: '!text-black' },
-            emptyMessage: { class: '!text-black !bg-white' },
-            }"
+            filter
           />
         </template>
       </Column>
@@ -422,28 +390,15 @@ export default {
       >
         <template #body="{ data }">{{ data.ukuran }}</template>
         <template #filter="{ filterModel, filterCallback }">
-          <Select
+          <CustomSelect
             v-model="filterModel.value"
             :options="ukuranOptions"
             optionLabel="label"
             optionValue="value"
             @change="filterCallback()"
             placeholder="Pilih ukuran"
-            class="font-farro"
             showClear
-            :pt="{
-            root: {
-                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
-            },
-            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
-            dropdown: { class: '!text-gray-400 !bg-white' },
-            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
-            listContainer: { class: 'bg-white' },
-            list: { class: '!bg-white' },
-            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
-            optionLabel: { class: '!text-black' },
-            emptyMessage: { class: '!text-black !bg-white' },
-            }"
+            filter
           />
         </template>
       </Column>
@@ -509,28 +464,14 @@ export default {
       >
         <template #body="{ data }">{{ data.satuan }}</template>
         <template #filter="{ filterModel, filterCallback }">
-          <Select
+          <CustomSelect
             v-model="filterModel.value"
             :options="satuanOptions"
             optionLabel="label"
             optionValue="value"
             @change="filterCallback()"
             placeholder="Pilih satuan"
-            class="font-farro"
             showClear
-            :pt="{
-            root: {
-                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
-            },
-            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
-            dropdown: { class: '!text-gray-400 !bg-white' },
-            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
-            listContainer: { class: 'bg-white' },
-            list: { class: '!bg-white' },
-            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
-            optionLabel: { class: '!text-black' },
-            emptyMessage: { class: '!text-black !bg-white' },
-            }"
           />
         </template>
       </Column>
@@ -548,28 +489,12 @@ export default {
       >
         <template #body="{ data }">{{ data.rasa }}</template>
         <template #filter="{ filterModel, filterCallback }">
-          <Select
+          <RasaSelect
             v-model="filterModel.value"
-            :options="rasaOptions"
-            optionLabel="label"
-            optionValue="value"
             @change="filterCallback()"
             placeholder="Pilih rasa"
-            class="font-farro"
             showClear
-            :pt="{
-            root: {
-                class: '!h-[2rem] flex items-center !bg-white !text-black !border !border-gray-300 !rounded-md !h-10 !min-w-40 focus-within:!border-primary focus-within:!ring-1 focus-within:!ring-primary',
-            },
-            label: { class: filterModel.value ? '!text-black !text-sm' : '!text-gray-400 !text-sm' },
-            dropdown: { class: '!text-gray-400 !bg-white' },
-            overlay: { class: '!bg-white !text-black !border !border-gray-200 !shadow-md' },
-            listContainer: { class: 'bg-white' },
-            list: { class: '!bg-white' },
-            option: { class: '!text-black !font-farro !bg-white hover:!bg-surface-hover' },
-            optionLabel: { class: '!text-black' },
-            emptyMessage: { class: '!text-black !bg-white' },
-            }"
+            filter
           />
         </template>
       </Column>
